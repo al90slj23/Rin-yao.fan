@@ -1,4 +1,6 @@
 import Elysia from "elysia"
+import { DB } from '../utils/db'
+import { getDB } from '../utils/di'
 
 interface IPTVChannel {
     id: string
@@ -19,7 +21,6 @@ interface IPTVSource {
 // In-memory cache with TTL (1 hour)
 const CACHE_TTL = 3600000 // 1 hour in milliseconds
 let channelCache: { data: IPTVChannel[], timestamp: number } | null = null
-let sourcesCache: IPTVSource[] = []
 
 /**
  * Get demo channels (built-in fallback)
@@ -96,31 +97,34 @@ function getDefaultSources(): IPTVSource[] {
             url: 'local://demo',
             enabled: true,
         },
-        {
-            id: 'demo_channels',
-            name: 'Demo Channels (External)',
-            url: 'https://demo.iptv.name/all.json',
-            enabled: false,
-        },
-        {
-            id: 'guovin_json',
-            name: 'Guovin IPTV (JSON)',
-            url: 'https://api.iptv.name/all.json',
-            enabled: false,
-        },
-        {
-            id: 'guovin_github',
-            name: 'Guovin IPTV (GitHub)',
-            url: 'https://raw.githubusercontent.com/Guovin/iptv-api/main/tv.json',
-            enabled: false,
-        },
     ]
+}
+
+/**
+ * Initialize default sources in database if they don't exist
+ */
+async function initializeDefaultSources(db: DB) {
+    try {
+        // Check if sources table is empty
+        const result = await db.prepare('SELECT COUNT(*) as count FROM iptv_sources').first<{ count: number }>()
+        if (result?.count === 0) {
+            // Insert default sources
+            const defaults = getDefaultSources()
+            for (const source of defaults) {
+                await db.prepare(
+                    'INSERT INTO iptv_sources (id, name, url, enabled) VALUES (?, ?, ?, ?)'
+                ).bind(source.id, source.name, source.url, source.enabled ? 1 : 0).run()
+            }
+        }
+    } catch (err) {
+        console.warn('Failed to initialize default sources:', err)
+    }
 }
 
 /**
  * Fetch IPTV channels with caching
  */
-async function fetchIPTVChannels(forceRefresh = false): Promise<IPTVChannel[]> {
+async function fetchIPTVChannels(db: DB, forceRefresh = false): Promise<IPTVChannel[]> {
     try {
         // Return cached data if available and not forcing refresh
         if (!forceRefresh && channelCache && Date.now() - channelCache.timestamp < CACHE_TTL) {
@@ -128,8 +132,15 @@ async function fetchIPTVChannels(forceRefresh = false): Promise<IPTVChannel[]> {
             return channelCache.data
         }
 
-        // Get sources (from cache or default)
-        const sources = sourcesCache.length > 0 ? sourcesCache : getDefaultSources()
+        // Get sources from database
+        const sourcesRows = await db.prepare('SELECT * FROM iptv_sources WHERE enabled = 1').all<any>()
+        const sources: IPTVSource[] = (sourcesRows.results || []).map((row: any) => ({
+            id: row.id,
+            name: row.name,
+            url: row.url,
+            enabled: row.enabled === 1,
+            lastFetch: row.lastFetch
+        }))
 
         for (const source of sources) {
             if (!source.enabled) continue
@@ -161,8 +172,9 @@ async function fetchIPTVChannels(forceRefresh = false): Promise<IPTVChannel[]> {
                         timestamp: Date.now()
                     }
 
-                    // Update source last fetch time
-                    source.lastFetch = Date.now()
+                    // Update source last fetch time in database
+                    await db.prepare('UPDATE iptv_sources SET lastFetch = ? WHERE id = ?')
+                        .bind(Date.now(), source.id).run()
 
                     return channels
                 }
@@ -228,19 +240,24 @@ function parseIPTVData(data: any): IPTVChannel[] {
 }
 
 export function IPTVService() {
+    const db: DB = getDB()
     return new Elysia({ aot: false })
+        .onStart(async () => {
+            // Initialize default sources on startup
+            await initializeDefaultSources(db)
+        })
         .group('/iptv', (group) =>
             group
                 // Get channels with optional force refresh
                 .get("/channels", async ({ query }: { query: { force_refresh?: string } }) => {
                     const forceRefresh = query.force_refresh === '1' || query.force_refresh === 'true'
-                    const channels = await fetchIPTVChannels(forceRefresh)
+                    const channels = await fetchIPTVChannels(db, forceRefresh)
                     return channels
                 })
                 // Get specific channel
                 .get("/channels/:id", async ({ params, query }: { params: { id: string }, query: { force_refresh?: string } }) => {
                     const forceRefresh = query.force_refresh === '1' || query.force_refresh === 'true'
-                    const channels = await fetchIPTVChannels(forceRefresh)
+                    const channels = await fetchIPTVChannels(db, forceRefresh)
                     const channel = channels.find(c => c.id === params.id)
                     if (!channel) {
                         return {
@@ -251,7 +268,14 @@ export function IPTVService() {
                 })
                 // Get IPTV sources
                 .get("/sources", async () => {
-                    return sourcesCache.length > 0 ? sourcesCache : getDefaultSources()
+                    const sourcesRows = await db.prepare('SELECT * FROM iptv_sources ORDER BY createdAt DESC').all<any>()
+                    return (sourcesRows.results || []).map((row: any) => ({
+                        id: row.id,
+                        name: row.name,
+                        url: row.url,
+                        enabled: row.enabled === 1,
+                        lastFetch: row.lastFetch
+                    }))
                 })
                 // Add new IPTV source
                 .post("/sources", async ({ body }: { body: any }) => {
@@ -262,50 +286,62 @@ export function IPTVService() {
                         enabled: body.enabled !== false,
                     }
 
-                    // If sourcesCache is empty, initialize with default sources
-                    if (sourcesCache.length === 0) {
-                        sourcesCache = getDefaultSources()
-                    }
+                    await db.prepare(
+                        'INSERT INTO iptv_sources (id, name, url, enabled) VALUES (?, ?, ?, ?)'
+                    ).bind(newSource.id, newSource.name, newSource.url, newSource.enabled ? 1 : 0).run()
 
-                    sourcesCache.push(newSource)
                     return newSource
                 })
                 // Update IPTV source
                 .put("/sources/:id", async ({ params, body }: { params: { id: string }, body: any }) => {
-                    // If sourcesCache is empty, initialize with default sources
-                    if (sourcesCache.length === 0) {
-                        sourcesCache = getDefaultSources()
-                    }
+                    const sourceRow = await db.prepare('SELECT * FROM iptv_sources WHERE id = ?').bind(params.id).first<any>()
 
-                    const source = sourcesCache.find(s => s.id === params.id)
-                    if (!source) {
+                    if (!sourceRow) {
                         return { error: 'Source not found' }
                     }
 
-                    if (body.name) source.name = body.name
-                    if (body.url) source.url = body.url
-                    if (body.enabled !== undefined) source.enabled = body.enabled
+                    const updates: { [key: string]: any } = {}
+                    if (body.name) updates.name = body.name
+                    if (body.url) updates.url = body.url
+                    if (body.enabled !== undefined) updates.enabled = body.enabled ? 1 : 0
 
-                    return source
+                    if (Object.keys(updates).length > 0) {
+                        const setClause = Object.keys(updates).map(k => `${k} = ?`).join(', ')
+                        const values = Object.values(updates)
+                        values.push(params.id)
+
+                        await db.prepare(`UPDATE iptv_sources SET ${setClause} WHERE id = ?`).bind(...values).run()
+                    }
+
+                    return {
+                        id: params.id,
+                        name: updates.name || sourceRow.name,
+                        url: updates.url || sourceRow.url,
+                        enabled: updates.enabled !== undefined ? updates.enabled === 1 : sourceRow.enabled === 1,
+                        lastFetch: sourceRow.lastFetch
+                    }
                 })
                 // Delete IPTV source
                 .delete("/sources/:id", async ({ params }: { params: { id: string } }) => {
-                    // If sourcesCache is empty, initialize with default sources
-                    if (sourcesCache.length === 0) {
-                        sourcesCache = getDefaultSources()
-                    }
+                    const sourceRow = await db.prepare('SELECT * FROM iptv_sources WHERE id = ?').bind(params.id).first<any>()
 
-                    const index = sourcesCache.findIndex(s => s.id === params.id)
-                    if (index === -1) {
+                    if (!sourceRow) {
                         return { error: 'Source not found' }
                     }
 
-                    const removed = sourcesCache.splice(index, 1)[0]
-                    return removed
+                    await db.prepare('DELETE FROM iptv_sources WHERE id = ?').bind(params.id).run()
+
+                    return {
+                        id: sourceRow.id,
+                        name: sourceRow.name,
+                        url: sourceRow.url,
+                        enabled: sourceRow.enabled === 1,
+                        lastFetch: sourceRow.lastFetch
+                    }
                 })
                 // Force refresh channels
                 .post("/refresh", async () => {
-                    const channels = await fetchIPTVChannels(true)
+                    const channels = await fetchIPTVChannels(db, true)
                     return {
                         success: true,
                         channels_count: channels.length,
@@ -314,7 +350,14 @@ export function IPTVService() {
                 })
                 // Debug endpoint - check IPTV data status
                 .get("/debug", async () => {
-                    const sources = sourcesCache.length > 0 ? sourcesCache : getDefaultSources()
+                    const sourcesRows = await db.prepare('SELECT * FROM iptv_sources').all<any>()
+                    const sources = (sourcesRows.results || []).map((row: any) => ({
+                        id: row.id,
+                        name: row.name,
+                        url: row.url,
+                        enabled: row.enabled === 1,
+                        last_fetch: row.lastFetch ? new Date(row.lastFetch).toISOString() : null,
+                    }))
 
                     return {
                         cache_status: {
@@ -322,13 +365,7 @@ export function IPTVService() {
                             cache_age_ms: channelCache ? Date.now() - channelCache.timestamp : null,
                             channels_count: channelCache?.data.length || 0,
                         },
-                        sources: sources.map(s => ({
-                            id: s.id,
-                            name: s.name,
-                            url: s.url,
-                            enabled: s.enabled,
-                            last_fetch: s.lastFetch ? new Date(s.lastFetch).toISOString() : null,
-                        })),
+                        sources,
                         timestamp: new Date().toISOString(),
                     }
                 })
