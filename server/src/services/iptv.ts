@@ -1,5 +1,5 @@
 import Elysia from "elysia"
-import { DB } from '../utils/db'
+import type { DB } from '../_worker'
 import { getDB } from '../utils/di'
 
 interface IPTVChannel {
