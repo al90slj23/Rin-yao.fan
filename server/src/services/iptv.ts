@@ -27,6 +27,12 @@ let sourcesCache: IPTVSource[] = []
 function getDefaultSources(): IPTVSource[] {
     return [
         {
+            id: 'demo_channels',
+            name: 'Demo Channels (Test)',
+            url: 'https://demo.iptv.name/all.json',
+            enabled: true,
+        },
+        {
             id: 'guovin_json',
             name: 'Guovin IPTV (JSON)',
             url: 'https://api.iptv.name/all.json',
