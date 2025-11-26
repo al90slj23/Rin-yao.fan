@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next"
 import { Waiting } from "../components/loading"
 import { client } from "../main"
 import { siteName } from "../utils/constants"
-import { Padding } from "../components/padding"
 
 interface IPTVChannel {
     id: string
@@ -15,7 +14,6 @@ interface IPTVChannel {
 }
 
 export function IPTVPage() {
-    const [channels, setChannels] = useState<IPTVChannel[]>([])
     const [loading, setLoading] = useState(true)
     const [selectedChannel, setSelectedChannel] = useState<IPTVChannel | null>(null)
     const [groupedChannels, setGroupedChannels] = useState<Record<string, IPTVChannel[]>>({})
@@ -27,7 +25,6 @@ export function IPTVPage() {
             .then(({ data }) => {
                 if (data && typeof data !== 'string') {
                     const arr = Array.isArray(data) ? data : []
-                    setChannels(arr)
 
                     // Group by category
                     const groups = arr.reduce<Record<string, IPTVChannel[]>>((acc, channel) => {
