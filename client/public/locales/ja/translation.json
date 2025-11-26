@@ -259,6 +259,23 @@
     "title": "IPTV",
     "channels": "チャンネル",
     "no_channels": "利用可能なチャンネルがありません",
-    "unable_to_load": "チャンネルを読み込めません"
+    "unable_to_load": "チャンネルを読み込めません",
+    "sources": "IPTVソース管理",
+    "sources_desc": "IPTVソースを管理します。カスタムM3U URLを追加してテレビチャンネルを読み込みます。",
+    "add_source": "ソースを追加",
+    "source_name": "ソース名",
+    "source_url": "ソースURL (M3U形式)",
+    "source_enabled": "有効",
+    "source_last_fetch": "最後に取得",
+    "source_actions": "アクション",
+    "source_edit": "編集",
+    "source_delete": "削除",
+    "source_delete_confirm": "このソースを削除しますか？",
+    "source_added": "ソースが正常に追加されました",
+    "source_updated": "ソースが正常に更新されました",
+    "source_deleted": "ソースが正常に削除されました",
+    "source_error": "ソース管理エラー",
+    "source_url_placeholder": "https://example.com/iptv.json",
+    "never": "なし"
   }
 }

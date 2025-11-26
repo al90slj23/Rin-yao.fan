@@ -5,6 +5,7 @@ import ReactLoading from "react-loading";
 import Modal from "react-modal";
 import {Button} from "../components/button.tsx";
 import {useAlert, useConfirm} from "../components/dialog.tsx";
+import {IPTVSourceManagement} from "../components/iptv-source-management.tsx";
 import {client, oauth_url} from "../main.tsx";
 import {
     ClientConfigContext,
@@ -163,6 +164,8 @@ export function Settings() {
                             <ItemWithUpload title={t('settings.wordpress.title')} description={t('settings.wordpress.desc')}
                                 accept="application/xml"
                                 onFileChange={onFileChange} />
+                            <ItemTitle title={t('iptv.sources')} />
+                            <IPTVSourceManagement />
                         </div>
                     </main>
                 </ClientConfigContext.Provider>

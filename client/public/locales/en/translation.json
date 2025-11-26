@@ -259,6 +259,23 @@
     "title": "IPTV",
     "channels": "Channels",
     "no_channels": "No channels available",
-    "unable_to_load": "Unable to load channel"
+    "unable_to_load": "Unable to load channel",
+    "sources": "IPTV Sources",
+    "sources_desc": "Manage your IPTV sources. Add custom M3U URLs to load TV channels.",
+    "add_source": "Add Source",
+    "source_name": "Source Name",
+    "source_url": "Source URL (M3U format)",
+    "source_enabled": "Enabled",
+    "source_last_fetch": "Last fetched",
+    "source_actions": "Actions",
+    "source_edit": "Edit",
+    "source_delete": "Delete",
+    "source_delete_confirm": "Are you sure you want to delete this source?",
+    "source_added": "Source added successfully",
+    "source_updated": "Source updated successfully",
+    "source_deleted": "Source deleted successfully",
+    "source_error": "Error managing source",
+    "source_url_placeholder": "https://example.com/iptv.json",
+    "never": "Never"
   }
 }

@@ -259,6 +259,23 @@
     "title": "IPTV",
     "channels": "頻道列表",
     "no_channels": "暫無頻道",
-    "unable_to_load": "無法載入頻道"
+    "unable_to_load": "無法載入頻道",
+    "sources": "IPTV來源管理",
+    "sources_desc": "管理您的IPTV來源。新增自訂M3U連結來載入電視頻道。",
+    "add_source": "新增來源",
+    "source_name": "來源名稱",
+    "source_url": "來源位址（M3U格式）",
+    "source_enabled": "啟用",
+    "source_last_fetch": "上次取得",
+    "source_actions": "操作",
+    "source_edit": "編輯",
+    "source_delete": "刪除",
+    "source_delete_confirm": "確定要刪除此來源嗎？",
+    "source_added": "來源新增成功",
+    "source_updated": "來源更新成功",
+    "source_deleted": "來源刪除成功",
+    "source_error": "來源管理出錯",
+    "source_url_placeholder": "https://example.com/iptv.json",
+    "never": "從未"
   }
 }
