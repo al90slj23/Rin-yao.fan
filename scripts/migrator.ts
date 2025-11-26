@@ -37,6 +37,16 @@ const jwtSecret = env("JWT_SECRET")
 const githubClientId = env("RIN_GITHUB_CLIENT_ID")
 const githubClientSecret = env("RIN_GITHUB_CLIENT_SECRET")
 
+// 从 FRONTEND_URL 提取域名用于路由配置
+const CUSTOM_DOMAIN = FRONTEND_URL ? new URL(FRONTEND_URL).hostname : ""
+
+// 生成域名路由配置
+const domainRoutes = CUSTOM_DOMAIN ? `
+routes = [
+  { pattern = "${CUSTOM_DOMAIN}", custom_domain = true }
+]
+` : ''
+
 Bun.write('wrangler.toml', stripIndent(`
 #:schema node_modules/wrangler/config-schema.json
 name = "${WORKER_NAME}"
@@ -63,6 +73,7 @@ RSS_DESCRIPTION = "${RSS_DESCRIPTION}"
 
 [placement]
 mode = "smart"
+${domainRoutes}
 `))
 
 type D1Item = {
