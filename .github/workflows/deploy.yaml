@@ -65,5 +65,5 @@ jobs:
         run: |
           cd Rin/client
           bun run build
-          bunx wrangler pages project create YaoFan-Pages --production-branch=main || true
-          bunx wrangler pages deploy dist --project-name=YaoFan-Pages --branch=main
+          bunx wrangler pages project create yaofan-pages --production-branch=main || true
+          bunx wrangler pages deploy dist --project-name=yaofan-pages --branch=main
