@@ -169,7 +169,49 @@ function parseIPTVData(data: any): IPTVChannel[] {
     const channels: IPTVChannel[] = []
 
     try {
-        if (Array.isArray(data)) {
+        if (typeof data === 'string') {
+            // M3U format parsing
+            const lines = data.split('\n')
+            let currentGroup = 'Other'
+            let channelIndex = 0
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim()
+
+                if (line.startsWith('#EXTINF:')) {
+                    const extinf = line
+                    // Extract tvg-name, tvg-logo, and group-title from EXTINF line
+                    const tvgNameMatch = extinf.match(/tvg-name="([^"]*)"/)
+                    const tvgLogoMatch = extinf.match(/tvg-logo="([^"]*)"/)
+                    const groupMatch = extinf.match(/group-title="([^"]*)"/)
+
+                    // Get the channel name (after the last comma)
+                    const commaIndex = extinf.lastIndexOf(',')
+                    const channelName = commaIndex !== -1 ? extinf.substring(commaIndex + 1).trim() : ''
+
+                    // Get the URL from the next line
+                    if (i + 1 < lines.length) {
+                        const url = lines[i + 1].trim()
+                        if (url && !url.startsWith('#') && url.length > 0) {
+                            const name = tvgNameMatch ? tvgNameMatch[1] : channelName
+                            const group = groupMatch ? groupMatch[1] : currentGroup
+                            const logo = tvgLogoMatch ? tvgLogoMatch[1] : undefined
+
+                            if (name && url) {
+                                channels.push({
+                                    id: `m3u_${channelIndex}`,
+                                    name: name,
+                                    logo: logo,
+                                    url: url,
+                                    group: group
+                                })
+                                channelIndex++
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (Array.isArray(data)) {
             // Guovin's format with groups
             data.forEach((group: any) => {
                 if (group.channels && Array.isArray(group.channels)) {
