@@ -85,6 +85,27 @@ export const feedHashtags = sqliteTable("feed_hashtags", {
     updatedAt: updated_at,
 });
 
+export const iptvSources = sqliteTable("iptv_sources", {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    url: text("url").notNull(),
+    enabled: integer("enabled").default(1).notNull(),
+    lastFetch: integer("lastFetch"),
+    createdAt: created_at,
+    updatedAt: updated_at,
+});
+
+export const iptvChannels = sqliteTable("iptv_channels", {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    logo: text("logo"),
+    url: text("url").notNull(),
+    group: text("group"),
+    sourceId: text("source_id").references(() => iptvSources.id, { onDelete: 'cascade' }).notNull(),
+    createdAt: created_at,
+    updatedAt: updated_at,
+});
+
 export const feedsRelations = relations(feeds, ({ many, one }) => ({
     hashtags: many(feedHashtags),
     user: one(users, {
