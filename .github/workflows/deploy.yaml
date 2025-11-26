@@ -54,7 +54,7 @@ jobs:
           API_URL: ${{ vars.API_URL }}
         run: |
           cd Rin/
-          bun install --frozen-lockfile
+          bun install
           bun scripts/migrator.ts
 
       - name: Build and Deploy Frontend
