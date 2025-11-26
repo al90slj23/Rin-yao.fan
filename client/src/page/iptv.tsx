@@ -17,6 +17,7 @@ interface IPTVChannel {
 
 export function IPTVPage() {
     const [loading, setLoading] = useState(true)
+    const [refreshing, setRefreshing] = useState(false)
     const [selectedChannel, setSelectedChannel] = useState<IPTVChannel | null>(null)
     const [allChannels, setAllChannels] = useState<IPTVChannel[]>([])
     const playerRef = useRef<HTMLVideoElement>(null)
@@ -24,25 +25,59 @@ export function IPTVPage() {
     const fetchRef = useRef(false)
     const { t } = useTranslation()
 
-    function fetchChannels() {
-        client.iptv.channels.get()
-            .then(({ data }: { data: unknown }) => {
-                if (data && typeof data !== 'string') {
-                    const arr = Array.isArray(data) ? data : []
-                    setAllChannels(arr)
+    function fetchChannels(isRefresh = false) {
+        if (isRefresh) {
+            setRefreshing(true)
+        }
 
-                    // Select first channel by default
-                    if (arr.length > 0) {
-                        setSelectedChannel(arr[0])
+        // If forcing refresh, use the refresh endpoint instead
+        if (isRefresh) {
+            client.iptv.refresh.post({})
+                .then(() => {
+                    // After refresh, fetch the updated channels
+                    return client.iptv.channels.get()
+                })
+                .then(({ data }: { data: unknown }) => {
+                    if (data && typeof data !== 'string') {
+                        const arr = Array.isArray(data) ? data : []
+                        setAllChannels(arr)
+
+                        // Select first channel by default or keep current selection
+                        if (arr.length > 0) {
+                            if (!selectedChannel) {
+                                setSelectedChannel(arr[0])
+                            }
+                        }
                     }
-                }
-            })
-            .catch((err: unknown) => {
-                console.error("fetchChannels error:", err)
-            })
-            .finally(() => {
-                setLoading(false)
-            })
+                })
+                .catch((err: unknown) => {
+                    console.error("fetchChannels error:", err)
+                })
+                .finally(() => {
+                    setRefreshing(false)
+                })
+        } else {
+            client.iptv.channels.get()
+                .then(({ data }: { data: unknown }) => {
+                    if (data && typeof data !== 'string') {
+                        const arr = Array.isArray(data) ? data : []
+                        setAllChannels(arr)
+
+                        // Select first channel by default or keep current selection
+                        if (arr.length > 0) {
+                            if (!selectedChannel) {
+                                setSelectedChannel(arr[0])
+                            }
+                        }
+                    }
+                })
+                .catch((err: unknown) => {
+                    console.error("fetchChannels error:", err)
+                })
+                .finally(() => {
+                    setLoading(false)
+                })
+        }
     }
 
     useEffect(() => {
@@ -99,88 +134,113 @@ export function IPTVPage() {
             <Helmet>
                 <title>{t('iptv.title')} - {siteName}</title>
             </Helmet>
-            <div className="w-full h-full min-h-screen bg-black">
+            <div className="fixed inset-0 bg-black z-40" style={{ top: '80px' }}>
                 {hasChannels ? (
-                    <div className="flex flex-col lg:flex-row gap-4 p-4 h-full">
-                        {/* Left: Player Section */}
-                        <div className="flex-1 lg:w-2/3 flex flex-col">
+                    <div className="flex flex-col md:flex-row h-full gap-0">
+                        {/* Left: Player Section (Mobile: Full width, Desktop: 2/3) */}
+                        <div className="flex-1 md:w-2/3 flex flex-col overflow-hidden">
+                            {/* Player Controls Header */}
+                            <div className="flex items-center justify-between p-3 bg-gray-900 border-b border-gray-800">
+                                <div className="flex-1 min-w-0">
+                                    {selectedChannel && (
+                                        <>
+                                            <h2 className="text-lg md:text-2xl font-bold text-white truncate">{selectedChannel.name}</h2>
+                                            {selectedChannel.group && (
+                                                <p className="text-xs md:text-sm text-gray-400 truncate">{selectedChannel.group}</p>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => fetchChannels(true)}
+                                    disabled={refreshing}
+                                    className="ml-3 flex-shrink-0 p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-all"
+                                    title={t('reload')}
+                                >
+                                    <i className={`ri-refresh-line text-lg ${refreshing ? 'animate-spin' : ''}`}></i>
+                                </button>
+                            </div>
+
+                            {/* Video Player Container */}
                             {selectedChannel && (
-                                <>
-                                    <div className="bg-black rounded-lg overflow-hidden flex-1 flex items-center justify-center min-h-96">
+                                <div className="flex-1 overflow-hidden">
+                                    <div className="w-full h-full bg-black flex items-center justify-center">
                                         {selectedChannel.url ? (
                                             <video
                                                 ref={playerRef}
                                                 key={selectedChannel.id}
                                                 crossOrigin="anonymous"
                                                 playsInline
-                                                className="w-full h-full"
+                                                className="w-full h-full object-contain"
                                                 src={selectedChannel.url}
                                             />
                                         ) : (
                                             <div className="text-white text-center">
-                                                {t('iptv.unable_to_load')}: {selectedChannel.name}
+                                                <i className="ri-error-warning-line ri-5x mb-4 block text-red-500"></i>
+                                                <p>{t('iptv.unable_to_load')}: {selectedChannel.name}</p>
                                             </div>
                                         )}
                                     </div>
-                                    <div className="mt-4 text-white">
-                                        <h2 className="text-3xl font-bold">{selectedChannel.name}</h2>
-                                        {selectedChannel.group && (
-                                            <p className="text-gray-400 text-sm mt-2">{selectedChannel.group}</p>
-                                        )}
-                                    </div>
-                                </>
+                                </div>
                             )}
                         </div>
 
-                        {/* Right: Channel List Sidebar */}
-                        <div className="w-full lg:w-1/3 flex flex-col">
-                            <h3 className="text-xl font-bold text-white mb-4">{t('iptv.channels')}</h3>
-                            <div className="flex-1 overflow-y-auto bg-gray-900 rounded-lg p-3 space-y-2">
-                                {channelList.map(channel => (
-                                    <button
-                                        key={channel.id}
-                                        onClick={() => setSelectedChannel(channel)}
-                                        className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${
-                                            selectedChannel?.id === channel.id
-                                                ? 'bg-theme text-white shadow-lg'
-                                                : 'bg-gray-800 text-gray-200 hover:bg-gray-700'
-                                        }`}
-                                    >
-                                        {/* Channel Logo */}
-                                        <div className="flex-shrink-0 w-12 h-12 bg-gray-700 rounded flex items-center justify-center overflow-hidden">
-                                            {channel.logo ? (
-                                                <img
-                                                    src={channel.logo}
-                                                    alt={channel.name}
-                                                    className="w-full h-full object-contain p-1"
-                                                    onError={(e: unknown) => {
-                                                        if (e && typeof e === 'object' && 'target' in e) {
-                                                            ((e as any).target as HTMLImageElement).style.display = 'none'
-                                                        }
-                                                    }}
-                                                />
-                                            ) : (
-                                                <i className="ri-tv-2-line ri-lg"></i>
+                        {/* Right: Channel List Sidebar (Mobile: Below player, Desktop: Side) */}
+                        <div className="w-full md:w-1/3 h-1/3 md:h-full flex flex-col overflow-hidden bg-gray-950 border-l border-gray-800">
+                            {/* Sidebar Header */}
+                            <div className="flex-shrink-0 p-3 border-b border-gray-800">
+                                <h3 className="text-lg font-bold text-white">{t('iptv.channels')} ({channelList.length})</h3>
+                            </div>
+
+                            {/* Channels Scroll Area */}
+                            <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                                <div className="space-y-1 p-2">
+                                    {channelList.map(channel => (
+                                        <button
+                                            key={channel.id}
+                                            onClick={() => setSelectedChannel(channel)}
+                                            className={`w-full flex items-center gap-2 p-2 rounded-md transition-all duration-200 text-sm ${
+                                                selectedChannel?.id === channel.id
+                                                    ? 'bg-theme text-white shadow-lg'
+                                                    : 'bg-gray-800 text-gray-200 hover:bg-gray-700'
+                                            }`}
+                                        >
+                                            {/* Channel Logo */}
+                                            <div className="flex-shrink-0 w-10 h-10 bg-gray-700 rounded flex items-center justify-center overflow-hidden">
+                                                {channel.logo ? (
+                                                    <img
+                                                        src={channel.logo}
+                                                        alt={channel.name}
+                                                        className="w-full h-full object-contain p-0.5"
+                                                        onError={(e: unknown) => {
+                                                            if (e && typeof e === 'object' && 'target' in e) {
+                                                                ((e as any).target as HTMLImageElement).style.display = 'none'
+                                                            }
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <i className="ri-tv-2-line"></i>
+                                                )}
+                                            </div>
+                                            {/* Channel Info */}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-semibold text-xs truncate">{channel.name}</p>
+                                                {channel.group && (
+                                                    <p className="text-xs opacity-60 truncate">{channel.group}</p>
+                                                )}
+                                            </div>
+                                            {/* Indicator */}
+                                            {selectedChannel?.id === channel.id && (
+                                                <i className="ri-check-line flex-shrink-0"></i>
                                             )}
-                                        </div>
-                                        {/* Channel Info */}
-                                        <div className="flex-1 text-left min-w-0">
-                                            <p className="font-semibold text-sm truncate">{channel.name}</p>
-                                            {channel.group && (
-                                                <p className="text-xs opacity-75 truncate">{channel.group}</p>
-                                            )}
-                                        </div>
-                                        {/* Indicator */}
-                                        {selectedChannel?.id === channel.id && (
-                                            <i className="ri-check-line ri-lg flex-shrink-0"></i>
-                                        )}
-                                    </button>
-                                ))}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
                 ) : (
-                    <div className="w-full h-screen flex items-center justify-center">
+                    <div className="w-full h-full flex items-center justify-center">
                         <div className="text-center text-gray-400">
                             <i className="ri-tv-2-line ri-5x mb-4 block"></i>
                             <p className="text-xl">{t('iptv.no_channels')}</p>
