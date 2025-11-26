@@ -37,13 +37,14 @@ const jwtSecret = env("JWT_SECRET")
 const githubClientId = env("RIN_GITHUB_CLIENT_ID")
 const githubClientSecret = env("RIN_GITHUB_CLIENT_SECRET")
 
-// 从 FRONTEND_URL 提取域名用于路由配置
-const CUSTOM_DOMAIN = FRONTEND_URL ? new URL(FRONTEND_URL).hostname : ""
+// 从 API_URL 提取域名用于 Worker 路由配置（后端 API）
+const API_URL = env("API_URL", "")
+const API_DOMAIN = API_URL ? new URL(API_URL).hostname : ""
 
 // 生成域名路由配置
-const domainRoutes = CUSTOM_DOMAIN ? `
+const domainRoutes = API_DOMAIN ? `
 routes = [
-  { pattern = "${CUSTOM_DOMAIN}", custom_domain = true }
+  { pattern = "${API_DOMAIN}", custom_domain = true }
 ]
 ` : ''
 
