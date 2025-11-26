@@ -106,6 +106,17 @@ export const iptvChannels = sqliteTable("iptv_channels", {
     updatedAt: updated_at,
 });
 
+export const iptvSourcesRelations = relations(iptvSources, ({ many }) => ({
+    channels: many(iptvChannels),
+}));
+
+export const iptvChannelsRelations = relations(iptvChannels, ({ one }) => ({
+    source: one(iptvSources, {
+        fields: [iptvChannels.sourceId],
+        references: [iptvSources.id],
+    }),
+}));
+
 export const feedsRelations = relations(feeds, ({ many, one }) => ({
     hashtags: many(feedHashtags),
     user: one(users, {

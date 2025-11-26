@@ -4,8 +4,8 @@ CREATE TABLE IF NOT EXISTS `iptv_sources` (
 	`url` text NOT NULL,
 	`enabled` integer DEFAULT 1 NOT NULL,
 	`lastFetch` integer,
-	`createdAt` integer DEFAULT (unixepoch()) NOT NULL,
-	`updatedAt` integer DEFAULT (unixepoch()) NOT NULL
+	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch()) NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS `iptv_channels` (
@@ -14,10 +14,10 @@ CREATE TABLE IF NOT EXISTS `iptv_channels` (
 	`logo` text,
 	`url` text NOT NULL,
 	`group` text,
-	`sourceId` text NOT NULL,
-	`createdAt` integer DEFAULT (unixepoch()) NOT NULL,
-	`updatedAt` integer DEFAULT (unixepoch()) NOT NULL,
-	FOREIGN KEY (`sourceId`) REFERENCES `iptv_sources`(`id`) ON UPDATE no action ON DELETE cascade
+	`source_id` text NOT NULL,
+	`created_at` integer DEFAULT (unixepoch()) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch()) NOT NULL,
+	FOREIGN KEY (`source_id`) REFERENCES `iptv_sources`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 UPDATE `info` SET `value` = '5' WHERE `key` = 'migration_version';
