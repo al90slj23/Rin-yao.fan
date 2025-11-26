@@ -55,3 +55,13 @@ jobs:
           cd Rin/
           bun install --frozen-lockfile
           bun scripts/migrator.ts
+
+      - name: Build and Deploy Frontend
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          VITE_API_URL: ${{ vars.FRONTEND_URL }}
+        run: |
+          cd Rin/client
+          bun run build
+          bunx wrangler pages deploy dist --project-name=yao-fan --branch=main
