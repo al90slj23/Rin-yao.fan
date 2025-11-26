@@ -22,27 +22,97 @@ let channelCache: { data: IPTVChannel[], timestamp: number } | null = null
 let sourcesCache: IPTVSource[] = []
 
 /**
+ * Get demo channels (built-in fallback)
+ */
+function getDemoChannels(): IPTVChannel[] {
+    return [
+        {
+            id: 'demo_cctv1',
+            name: 'CCTV-1',
+            logo: 'https://epg.51zhy.cn:8000/logo/cctv1.png',
+            url: 'https://www.example.com/cctv1.m3u8',
+            group: 'CCTV'
+        },
+        {
+            id: 'demo_cctv2',
+            name: 'CCTV-2',
+            logo: 'https://epg.51zhy.cn:8000/logo/cctv2.png',
+            url: 'https://www.example.com/cctv2.m3u8',
+            group: 'CCTV'
+        },
+        {
+            id: 'demo_cctv3',
+            name: 'CCTV-3',
+            logo: 'https://epg.51zhy.cn:8000/logo/cctv3.png',
+            url: 'https://www.example.com/cctv3.m3u8',
+            group: 'CCTV'
+        },
+        {
+            id: 'demo_cctv5',
+            name: 'CCTV-5',
+            logo: 'https://epg.51zhy.cn:8000/logo/cctv5.png',
+            url: 'https://www.example.com/cctv5.m3u8',
+            group: 'CCTV'
+        },
+        {
+            id: 'demo_cctv13',
+            name: 'CCTV-13',
+            logo: 'https://epg.51zhy.cn:8000/logo/cctv13.png',
+            url: 'https://www.example.com/cctv13.m3u8',
+            group: 'CCTV'
+        },
+        {
+            id: 'demo_beijing',
+            name: 'Beijing Satellite TV',
+            logo: 'https://epg.51zhy.cn:8000/logo/beiying.png',
+            url: 'https://www.example.com/btv.m3u8',
+            group: 'Provincial'
+        },
+        {
+            id: 'demo_shanghai',
+            name: 'Shanghai Satellite TV',
+            logo: 'https://epg.51zhy.cn:8000/logo/sheng.png',
+            url: 'https://www.example.com/stv.m3u8',
+            group: 'Provincial'
+        },
+        {
+            id: 'demo_zhejiang',
+            name: 'Zhejiang Satellite TV',
+            logo: 'https://epg.51zhy.cn:8000/logo/zjstv.png',
+            url: 'https://www.example.com/ztv.m3u8',
+            group: 'Provincial'
+        }
+    ]
+}
+
+/**
  * Get default IPTV sources
  */
 function getDefaultSources(): IPTVSource[] {
     return [
         {
-            id: 'demo_channels',
-            name: 'Demo Channels (Test)',
-            url: 'https://demo.iptv.name/all.json',
+            id: 'local_demo',
+            name: 'Demo Channels (Local)',
+            url: 'local://demo',
             enabled: true,
+        },
+        {
+            id: 'demo_channels',
+            name: 'Demo Channels (External)',
+            url: 'https://demo.iptv.name/all.json',
+            enabled: false,
         },
         {
             id: 'guovin_json',
             name: 'Guovin IPTV (JSON)',
             url: 'https://api.iptv.name/all.json',
-            enabled: true,
+            enabled: false,
         },
         {
             id: 'guovin_github',
             name: 'Guovin IPTV (GitHub)',
             url: 'https://raw.githubusercontent.com/Guovin/iptv-api/main/tv.json',
-            enabled: true,
+            enabled: false,
         },
     ]
 }
@@ -65,15 +135,22 @@ async function fetchIPTVChannels(forceRefresh = false): Promise<IPTVChannel[]> {
             if (!source.enabled) continue
 
             try {
-                const response = await fetch(source.url, {
-                    method: 'GET',
-                    headers: { 'User-Agent': 'Rin-IPTV-Player/1.0' }
-                })
+                let channels: IPTVChannel[] = []
 
-                if (!response.ok) continue
+                // Handle local sources
+                if (source.url === 'local://demo') {
+                    channels = getDemoChannels()
+                } else {
+                    const response = await fetch(source.url, {
+                        method: 'GET',
+                        headers: { 'User-Agent': 'Rin-IPTV-Player/1.0' }
+                    })
 
-                const data: any = await response.json()
-                const channels = parseIPTVData(data)
+                    if (!response.ok) continue
+
+                    const data: any = await response.json()
+                    channels = parseIPTVData(data)
+                }
 
                 if (channels.length > 0) {
                     console.log(`Successfully fetched ${channels.length} channels from ${source.name}`)
