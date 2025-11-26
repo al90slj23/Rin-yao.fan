@@ -4,7 +4,7 @@ import 'plyr/dist/plyr.css'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from "react-i18next"
 import { Waiting } from "../components/loading"
-import { client } from "../main"
+import { client, endpoint } from "../main"
 import { siteName } from "../utils/constants"
 
 interface IPTVChannel {
@@ -86,6 +86,11 @@ export function IPTVPage() {
         fetchRef.current = true
     }, [])
 
+    // Get proxy URL for video to bypass CORS restrictions
+    function getProxyUrl(videoUrl: string): string {
+        return `${endpoint}/iptv/video-proxy?url=${encodeURIComponent(videoUrl)}`
+    }
+
     // Initialize Plyr player when channel changes or player ref is ready
     useEffect(() => {
         if (playerRef.current && selectedChannel?.url) {
@@ -94,8 +99,8 @@ export function IPTVPage() {
                 plyrRef.current.destroy()
             }
 
-            // Update video source
-            playerRef.current.src = selectedChannel.url
+            // Update video source - use proxy to bypass CORS
+            playerRef.current.src = getProxyUrl(selectedChannel.url)
 
             // Initialize new Plyr instance
             plyrRef.current = new Plyr(playerRef.current, {

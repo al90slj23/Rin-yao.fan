@@ -332,5 +332,51 @@ export function IPTVService() {
                         timestamp: new Date().toISOString(),
                     }
                 })
+                // Video proxy endpoint - bypasses CORS restrictions
+                .get("/video-proxy", async ({ query }) => {
+                    const videoUrl = (query as any)?.url
+                    if (!videoUrl) {
+                        return new Response('Video URL is required', { status: 400 })
+                    }
+
+                    try {
+                        // Decode the URL if it's base64 encoded, otherwise use as-is
+                        let decodedUrl = videoUrl
+                        try {
+                            decodedUrl = decodeURIComponent(videoUrl)
+                        } catch {
+                            // If decode fails, use original URL
+                        }
+
+                        const response = await fetch(decodedUrl, {
+                            method: 'GET',
+                            headers: {
+                                'User-Agent': 'Rin-IPTV-Player/1.0'
+                            }
+                        })
+
+                        if (!response.ok) {
+                            return new Response('Failed to fetch video', { status: response.status })
+                        }
+
+                        // Get the content type from the original response
+                        const contentType = response.headers.get('content-type') || 'video/mp2t'
+                        const buffer = await response.arrayBuffer()
+
+                        return new Response(buffer, {
+                            status: 200,
+                            headers: {
+                                'Content-Type': contentType,
+                                'Access-Control-Allow-Origin': '*',
+                                'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+                                'Access-Control-Allow-Headers': 'Content-Type, Range',
+                                'Accept-Ranges': 'bytes'
+                            }
+                        })
+                    } catch (err) {
+                        console.error('Error proxying video:', err)
+                        return new Response('Error fetching video', { status: 500 })
+                    }
+                })
         )
 }
