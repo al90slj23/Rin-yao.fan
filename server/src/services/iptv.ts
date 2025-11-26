@@ -2,6 +2,7 @@ import Elysia from "elysia"
 import type { DB } from "../_worker"
 import { iptvSources } from "../db/schema"
 import { getDB } from "../utils/di"
+import { setup } from "../setup"
 import { eq } from "drizzle-orm"
 
 interface IPTVChannel {
@@ -215,6 +216,7 @@ function parseIPTVData(data: any): IPTVChannel[] {
 export function IPTVService() {
     const db: DB = getDB()
     return new Elysia({ aot: false })
+        .use(setup())
         .group('/iptv', (group: any) =>
             group
                 // Get channels with optional force refresh
