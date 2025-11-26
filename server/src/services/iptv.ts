@@ -229,5 +229,25 @@ export function IPTVService() {
                         timestamp: Date.now()
                     }
                 })
+                // Debug endpoint - check IPTV data status
+                .get("/debug", async () => {
+                    const sources = sourcesCache.length > 0 ? sourcesCache : getDefaultSources()
+
+                    return {
+                        cache_status: {
+                            has_cache: !!channelCache,
+                            cache_age_ms: channelCache ? Date.now() - channelCache.timestamp : null,
+                            channels_count: channelCache?.data.length || 0,
+                        },
+                        sources: sources.map(s => ({
+                            id: s.id,
+                            name: s.name,
+                            url: s.url,
+                            enabled: s.enabled,
+                            last_fetch: s.lastFetch ? new Date(s.lastFetch).toISOString() : null,
+                        })),
+                        timestamp: new Date().toISOString(),
+                    }
+                })
         )
 }
