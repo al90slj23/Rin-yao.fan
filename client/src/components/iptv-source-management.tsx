@@ -2,7 +2,6 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useAlert, useConfirm } from "./dialog"
 import { client } from "../main"
-import { headersWithAuth } from "../utils/auth"
 import * as Switch from '@radix-ui/react-switch'
 
 interface IPTVSource {
@@ -97,10 +96,10 @@ export function IPTVSourceManagement() {
     }
 
     async function handleDeleteSource(sourceId: string) {
-        showConfirm({
-            title: t('iptv.source_delete'),
-            message: t('iptv.source_delete_confirm'),
-            onConfirm: async () => {
+        showConfirm(
+            t('iptv.source_delete'),
+            t('iptv.source_delete_confirm'),
+            async () => {
                 try {
                     await client.iptv.sources({ id: sourceId }).delete()
                     showAlert(t('iptv.source_deleted'))
@@ -109,7 +108,7 @@ export function IPTVSourceManagement() {
                     showAlert(t('iptv.source_error') + ': ' + err.message)
                 }
             }
-        })
+        )
     }
 
     function formatLastFetch(timestamp?: number): string {
