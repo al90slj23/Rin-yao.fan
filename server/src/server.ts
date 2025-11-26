@@ -13,37 +13,46 @@ import { TagService } from './services/tag';
 import { UserService } from './services/user';
 import { ConfigService } from './services/config';
 
-export const app = () => new Elysia({ aot: false })
-    .use(cors({
-        aot: false,
-        origin: '*',
-        methods: '*',
-        allowedHeaders: [
-            'authorization',
-            'content-type'
-        ],
-        maxAge: 600,
-        credentials: true,
-        preflight: true
-    }))
-    .use(serverTiming({
-        enabled: true,
-    }))
-    .use(UserService())
-    .use(FaviconService())
-    .use(FeedService())
-    .use(CommentService())
-    .use(TagService())
-    .use(StorageService())
-    .use(FriendService())
-    .use(SEOService())
-    .use(RSSService())
-    .use(ConfigService())
-    .use(MomentsService())
-    .get('/', () => `Hi`)
-    .onError(({ path, params, code }) => {
-        if (code === 'NOT_FOUND')
-            return `${path} ${JSON.stringify(params)} not found`
-    })
+export const app = () => {
+    const elysia = new Elysia({ aot: false })
+        .use(cors({
+            aot: false,
+            origin: '*',
+            methods: '*',
+            allowedHeaders: [
+                'authorization',
+                'content-type'
+            ],
+            maxAge: 600,
+            credentials: true,
+            preflight: true
+        }))
+        .use(serverTiming({
+            enabled: true,
+        }))
+
+    try {
+        elysia.use(UserService())
+    } catch (error) {
+        console.error('Failed to load UserService:', error instanceof Error ? error.message : String(error))
+    }
+
+    return elysia
+        .use(FaviconService())
+        .use(FeedService())
+        .use(CommentService())
+        .use(TagService())
+        .use(StorageService())
+        .use(FriendService())
+        .use(SEOService())
+        .use(RSSService())
+        .use(ConfigService())
+        .use(MomentsService())
+        .get('/', () => `Hi`)
+        .onError(({ path, params, code }) => {
+            if (code === 'NOT_FOUND')
+                return `${path} ${JSON.stringify(params)} not found`
+        })
+}
 
 export type App = ReturnType<typeof app>;
