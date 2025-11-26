@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "include": [
+    "/*"
+  ],
+  "exclude": [
+    "/api/*",
+    "/iptv/*",
+    "/feed/*",
+    "/user/*",
+    "/tag/*",
+    "/storage/*",
+    "/friend/*",
+    "/comment/*",
+    "/config/*",
+    "/seo/*",
+    "/rss/*",
+    "/moments/*"
+  ]
+}
