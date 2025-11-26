@@ -276,6 +276,11 @@
     "source_deleted": "Source deleted successfully",
     "source_error": "Error managing source",
     "source_url_placeholder": "https://example.com/iptv.json",
-    "never": "Never"
+    "never": "Never",
+    "refresh_channels": "Refresh Channel List",
+    "refresh_channels_desc": "Fetch and update the channel list from all enabled sources",
+    "refresh_channels_confirm": "Refresh channel list?",
+    "refresh_channels_confirm_desc": "This will fetch the latest channels from all enabled IPTV sources and may take a moment.",
+    "refresh_channels_success": "Channel list refreshed successfully"
   }
 }

@@ -276,6 +276,11 @@
     "source_deleted": "源删除成功",
     "source_error": "源管理出错",
     "source_url_placeholder": "https://example.com/iptv.json",
-    "never": "从未"
+    "never": "从未",
+    "refresh_channels": "刷新频道列表",
+    "refresh_channels_desc": "从所有启用的源获取并更新频道列表",
+    "refresh_channels_confirm": "刷新频道列表？",
+    "refresh_channels_confirm_desc": "这将从所有启用的 IPTV 源获取最新频道，可能需要一些时间。",
+    "refresh_channels_success": "频道列表刷新成功"
   }
 }

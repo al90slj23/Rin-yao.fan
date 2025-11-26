@@ -166,6 +166,19 @@ export function Settings() {
                                 onFileChange={onFileChange} />
                             <ItemTitle title={t('iptv.sources')} />
                             <IPTVSourceManagement />
+                            <ItemButton title={t('iptv.refresh_channels')} description={t('iptv.refresh_channels_desc')} buttonTitle={t('reload')} onConfirm={async () => {
+                                await client.iptv.refresh.post({}, {
+                                    headers: headersWithAuth()
+                                })
+                                    .then(({ data }: { data: any }) => {
+                                        if (data && typeof data !== 'string') {
+                                            showAlert(t('iptv.refresh_channels_success'))
+                                        }
+                                    })
+                                    .catch((err: any) => {
+                                        showAlert(t('settings.get_config_failed$message', { message: err.message }))
+                                    })
+                            }} alertTitle={t('iptv.refresh_channels_confirm')} alertDescription={t('iptv.refresh_channels_confirm_desc')} />
                         </div>
                     </main>
                 </ClientConfigContext.Provider>

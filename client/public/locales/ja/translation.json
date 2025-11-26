@@ -276,6 +276,11 @@
     "source_deleted": "ソースが正常に削除されました",
     "source_error": "ソース管理エラー",
     "source_url_placeholder": "https://example.com/iptv.json",
-    "never": "なし"
+    "never": "なし",
+    "refresh_channels": "チャンネルリストを更新",
+    "refresh_channels_desc": "有効なすべてのソースからチャンネルリストを取得および更新します",
+    "refresh_channels_confirm": "チャンネルリストを更新しますか？",
+    "refresh_channels_confirm_desc": "有効なすべてのIPTVソースから最新のチャンネルを取得します。時間がかかる場合があります。",
+    "refresh_channels_success": "チャンネルリストが正常に更新されました"
   }
 }
