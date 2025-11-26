@@ -215,173 +215,159 @@ function parseIPTVData(data: any): IPTVChannel[] {
 export function IPTVService() {
     const db: DB = getDB()
     return new Elysia({ aot: false })
-        .group('/iptv', (group: any) =>
-            group
-                // Get channels with optional force refresh
-                .get("/channels", async ({ query }: { query: { force_refresh?: string } }) => {
-                    const forceRefresh = query.force_refresh === '1' || query.force_refresh === 'true'
-                    const channels = await fetchIPTVChannels(db, forceRefresh)
-                    return channels
-                })
-                // Get specific channel
-                .get("/channels/:id", async ({ params, query }: { params: { id: string }, query: { force_refresh?: string } }) => {
-                    const forceRefresh = query.force_refresh === '1' || query.force_refresh === 'true'
-                    const channels = await fetchIPTVChannels(db, forceRefresh)
-                    const channel = channels.find(c => c.id === params.id)
-                    if (!channel) {
-                        return {
-                            error: 'Channel not found'
-                        }
-                    }
-                    return channel
-                })
-                // Get IPTV sources
-                .get("/sources", async () => {
-                    const sources = await db.query.iptvSources.findMany()
-                    return sources.map((row: any) => ({
-                        id: row.id,
-                        name: row.name,
-                        url: row.url,
-                        enabled: row.enabled === 1,
-                        lastFetch: row.lastFetch
-                    }))
-                })
-                // Add new IPTV source
-                .post("/sources", async ({ body }: { body: any }) => {
-                    const newSource = {
-                        id: `custom_${Date.now()}`,
-                        name: body.name || 'Custom Source',
-                        url: body.url,
-                        enabled: body.enabled !== false ? 1 : 0,
-                    }
+        .get('/iptv/channels', async ({ query }: { query: { force_refresh?: string } }) => {
+            const forceRefresh = query.force_refresh === '1' || query.force_refresh === 'true'
+            const channels = await fetchIPTVChannels(db, forceRefresh)
+            return channels
+        })
+        .get('/iptv/channels/:id', async ({ params, query }: { params: { id: string }, query: { force_refresh?: string } }) => {
+            const forceRefresh = query.force_refresh === '1' || query.force_refresh === 'true'
+            const channels = await fetchIPTVChannels(db, forceRefresh)
+            const channel = channels.find(c => c.id === params.id)
+            if (!channel) {
+                return { error: 'Channel not found' }
+            }
+            return channel
+        })
+        .get('/iptv/sources', async () => {
+            const sources = await db.query.iptvSources.findMany()
+            return sources.map((row: any) => ({
+                id: row.id,
+                name: row.name,
+                url: row.url,
+                enabled: row.enabled === 1,
+                lastFetch: row.lastFetch
+            }))
+        })
+        .post('/iptv/sources', async ({ body }: { body: any }) => {
+            const newSource = {
+                id: `custom_${Date.now()}`,
+                name: body.name || 'Custom Source',
+                url: body.url,
+                enabled: body.enabled !== false ? 1 : 0,
+            }
 
-                    await db.insert(iptvSources).values(newSource)
+            await db.insert(iptvSources).values(newSource)
 
-                    return {
-                        id: newSource.id,
-                        name: newSource.name,
-                        url: newSource.url,
-                        enabled: newSource.enabled === 1,
-                    }
-                })
-                // Update IPTV source
-                .put("/sources/:id", async ({ params, body }: { params: { id: string }, body: any }) => {
-                    const sourceRow = await db.query.iptvSources.findFirst({ where: eq(iptvSources.id, params.id) })
+            return {
+                id: newSource.id,
+                name: newSource.name,
+                url: newSource.url,
+                enabled: newSource.enabled === 1,
+            }
+        })
+        .put('/iptv/sources/:id', async ({ params, body }: { params: { id: string }, body: any }) => {
+            const sourceRow = await db.query.iptvSources.findFirst({ where: eq(iptvSources.id, params.id) })
 
-                    if (!sourceRow) {
-                        return { error: 'Source not found' }
-                    }
+            if (!sourceRow) {
+                return { error: 'Source not found' }
+            }
 
-                    const updates: any = {}
-                    if (body.name !== undefined) updates.name = body.name
-                    if (body.url !== undefined) updates.url = body.url
-                    if (body.enabled !== undefined) updates.enabled = body.enabled ? 1 : 0
+            const updates: any = {}
+            if (body.name !== undefined) updates.name = body.name
+            if (body.url !== undefined) updates.url = body.url
+            if (body.enabled !== undefined) updates.enabled = body.enabled ? 1 : 0
 
-                    if (Object.keys(updates).length > 0) {
-                        await db.update(iptvSources).set(updates).where(eq(iptvSources.id, params.id))
-                    }
+            if (Object.keys(updates).length > 0) {
+                await db.update(iptvSources).set(updates).where(eq(iptvSources.id, params.id))
+            }
 
-                    return {
-                        id: params.id,
-                        name: updates.name || sourceRow.name,
-                        url: updates.url || sourceRow.url,
-                        enabled: updates.enabled !== undefined ? updates.enabled === 1 : sourceRow.enabled === 1,
-                        lastFetch: sourceRow.lastFetch
-                    }
-                })
-                // Delete IPTV source
-                .delete("/sources/:id", async ({ params }: { params: { id: string } }) => {
-                    const sourceRow = await db.query.iptvSources.findFirst({ where: eq(iptvSources.id, params.id) })
+            return {
+                id: params.id,
+                name: updates.name || sourceRow.name,
+                url: updates.url || sourceRow.url,
+                enabled: updates.enabled !== undefined ? updates.enabled === 1 : sourceRow.enabled === 1,
+                lastFetch: sourceRow.lastFetch
+            }
+        })
+        .delete('/iptv/sources/:id', async ({ params }: { params: { id: string } }) => {
+            const sourceRow = await db.query.iptvSources.findFirst({ where: eq(iptvSources.id, params.id) })
 
-                    if (!sourceRow) {
-                        return { error: 'Source not found' }
-                    }
+            if (!sourceRow) {
+                return { error: 'Source not found' }
+            }
 
-                    await db.delete(iptvSources).where(eq(iptvSources.id, params.id))
+            await db.delete(iptvSources).where(eq(iptvSources.id, params.id))
 
-                    return {
-                        id: sourceRow.id,
-                        name: sourceRow.name,
-                        url: sourceRow.url,
-                        enabled: sourceRow.enabled === 1,
-                        lastFetch: sourceRow.lastFetch
-                    }
-                })
-                // Force refresh channels
-                .post("/refresh", async () => {
-                    const channels = await fetchIPTVChannels(db, true)
-                    return {
-                        success: true,
-                        channels_count: channels.length,
-                        timestamp: Date.now()
-                    }
-                })
-                // Debug endpoint - check IPTV data status
-                .get("/debug", async () => {
-                    const sources = await db.query.iptvSources.findMany()
-                    const sourcesList = sources.map((row: any) => ({
-                        id: row.id,
-                        name: row.name,
-                        url: row.url,
-                        enabled: row.enabled === 1,
-                        last_fetch: row.lastFetch ? new Date(row.lastFetch * 1000).toISOString() : null,
-                    }))
+            return {
+                id: sourceRow.id,
+                name: sourceRow.name,
+                url: sourceRow.url,
+                enabled: sourceRow.enabled === 1,
+                lastFetch: sourceRow.lastFetch
+            }
+        })
+        .post('/iptv/refresh', async () => {
+            const channels = await fetchIPTVChannels(db, true)
+            return {
+                success: true,
+                channels_count: channels.length,
+                timestamp: Date.now()
+            }
+        })
+        .get('/iptv/debug', async () => {
+            const sources = await db.query.iptvSources.findMany()
+            const sourcesList = sources.map((row: any) => ({
+                id: row.id,
+                name: row.name,
+                url: row.url,
+                enabled: row.enabled === 1,
+                last_fetch: row.lastFetch ? new Date(row.lastFetch * 1000).toISOString() : null,
+            }))
 
-                    return {
-                        cache_status: {
-                            has_cache: !!channelCache,
-                            cache_age_ms: channelCache ? Date.now() - channelCache.timestamp : null,
-                            channels_count: channelCache?.data.length || 0,
-                        },
-                        sources: sourcesList,
-                        timestamp: new Date().toISOString(),
-                    }
-                })
-                // Video proxy endpoint - bypasses CORS restrictions
-                .get("/video-proxy", async ({ query }: { query: any }) => {
-                    const videoUrl = query?.url
-                    if (!videoUrl) {
-                        return new Response('Video URL is required', { status: 400 })
-                    }
+            return {
+                cache_status: {
+                    has_cache: !!channelCache,
+                    cache_age_ms: channelCache ? Date.now() - channelCache.timestamp : null,
+                    channels_count: channelCache?.data.length || 0,
+                },
+                sources: sourcesList,
+                timestamp: new Date().toISOString(),
+            }
+        })
+        .get('/iptv/video-proxy', async ({ query }: { query: any }) => {
+            const videoUrl = query?.url
+            if (!videoUrl) {
+                return new Response('Video URL is required', { status: 400 })
+            }
 
-                    try {
-                        // Decode the URL if it's base64 encoded, otherwise use as-is
-                        let decodedUrl = videoUrl
-                        try {
-                            decodedUrl = decodeURIComponent(videoUrl)
-                        } catch {
-                            // If decode fails, use original URL
-                        }
+            try {
+                // Decode the URL if it's base64 encoded, otherwise use as-is
+                let decodedUrl = videoUrl
+                try {
+                    decodedUrl = decodeURIComponent(videoUrl)
+                } catch {
+                    // If decode fails, use original URL
+                }
 
-                        const response = await fetch(decodedUrl, {
-                            method: 'GET',
-                            headers: {
-                                'User-Agent': 'Rin-IPTV-Player/1.0'
-                            }
-                        })
-
-                        if (!response.ok) {
-                            return new Response('Failed to fetch video', { status: response.status })
-                        }
-
-                        // Get the content type from the original response
-                        const contentType = response.headers.get('content-type') || 'video/mp2t'
-                        const buffer = await response.arrayBuffer()
-
-                        return new Response(buffer, {
-                            status: 200,
-                            headers: {
-                                'Content-Type': contentType,
-                                'Access-Control-Allow-Origin': '*',
-                                'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-                                'Access-Control-Allow-Headers': 'Content-Type, Range',
-                                'Accept-Ranges': 'bytes'
-                            }
-                        })
-                    } catch (err) {
-                        console.error('Error proxying video:', err)
-                        return new Response('Error fetching video', { status: 500 })
+                const response = await fetch(decodedUrl, {
+                    method: 'GET',
+                    headers: {
+                        'User-Agent': 'Rin-IPTV-Player/1.0'
                     }
                 })
-        )
+
+                if (!response.ok) {
+                    return new Response('Failed to fetch video', { status: response.status })
+                }
+
+                // Get the content type from the original response
+                const contentType = response.headers.get('content-type') || 'video/mp2t'
+                const buffer = await response.arrayBuffer()
+
+                return new Response(buffer, {
+                    status: 200,
+                    headers: {
+                        'Content-Type': contentType,
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+                        'Access-Control-Allow-Headers': 'Content-Type, Range',
+                        'Accept-Ranges': 'bytes'
+                    }
+                })
+            } catch (err) {
+                console.error('Error proxying video:', err)
+                return new Response('Error fetching video', { status: 500 })
+            }
+        })
 }
