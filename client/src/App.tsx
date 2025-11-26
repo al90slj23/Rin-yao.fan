@@ -25,6 +25,7 @@ import { Tips, TipsPage } from './components/tips.tsx'
 import { useTranslation } from 'react-i18next'
 import { MomentsPage } from './page/moments'
 import { ErrorPage } from './page/error.tsx'
+import { IPTVPage } from './page/iptv.tsx'
 
 function App() {
   const ref = useRef(false)
@@ -108,6 +109,10 @@ function App() {
               {params => {
                 return (<HashtagPage name={params.name || ""} />)
               }}
+            </RouteMe>
+
+            <RouteMe path="/iptv">
+              <IPTVPage />
             </RouteMe>
 
             <RouteMe path="/search/:keyword">

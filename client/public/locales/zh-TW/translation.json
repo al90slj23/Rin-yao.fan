@@ -254,5 +254,10 @@
     "self_only": "僅自己可見"
   },
   "writing": "寫作",
-  "year$year": "{{year}} 年"
+  "year$year": "{{year}} 年",
+  "iptv": {
+    "title": "IPTV",
+    "channels": "頻道列表",
+    "no_channels": "暫無頻道"
+  }
 }
