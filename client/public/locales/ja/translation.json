@@ -258,6 +258,7 @@
   "iptv": {
     "title": "IPTV",
     "channels": "チャンネル",
-    "no_channels": "利用可能なチャンネルがありません"
+    "no_channels": "利用可能なチャンネルがありません",
+    "unable_to_load": "チャンネルを読み込めません"
   }
 }

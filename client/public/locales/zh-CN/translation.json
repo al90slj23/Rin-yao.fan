@@ -258,6 +258,7 @@
   "iptv": {
     "title": "IPTV",
     "channels": "频道列表",
-    "no_channels": "暂无频道"
+    "no_channels": "暂无频道",
+    "unable_to_load": "无法加载频道"
   }
 }

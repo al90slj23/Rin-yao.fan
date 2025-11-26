@@ -258,6 +258,7 @@
   "iptv": {
     "title": "IPTV",
     "channels": "Channels",
-    "no_channels": "No channels available"
+    "no_channels": "No channels available",
+    "unable_to_load": "Unable to load channel"
   }
 }
