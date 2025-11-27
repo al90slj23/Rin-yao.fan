@@ -122,53 +122,65 @@ export function IPTVPage() {
         const videoElement = playerRef.current
         if (!videoElement || !selectedChannel?.url) return
 
-        // Clean up previous instance
-        const oldPlayer = plyrRef.current
-        if (oldPlayer) {
+        const proxyUrl = getProxyUrl(selectedChannel.url)
+
+        // Initialize player once (don't recreate it)
+        if (!plyrRef.current) {
             try {
-                oldPlayer.destroy()
+                plyrRef.current = new Plyr(videoElement, {
+                    controls: [
+                        'play-large',
+                        'play',
+                        'progress',
+                        'current-time',
+                        'mute',
+                        'volume',
+                        'fullscreen'
+                    ],
+                    quality: { default: 360, options: [360, 720, 1080] },
+                    autoplay: true,
+                    loop: { active: false },
+                })
             } catch (e) {
-                // Suppress destroy errors
+                console.error('Plyr init failed:', e)
+                plyrRef.current = null
+                return
             }
-            plyrRef.current = null
         }
 
-        // Set video source
-        videoElement.src = getProxyUrl(selectedChannel.url)
-
-        // Create new player
+        // Just update the source, don't destroy/recreate player
         try {
-            plyrRef.current = new Plyr(videoElement, {
-                controls: [
-                    'play-large',
-                    'play',
-                    'progress',
-                    'current-time',
-                    'mute',
-                    'volume',
-                    'fullscreen'
-                ],
-                quality: { default: 360, options: [360, 720, 1080] },
-                autoplay: true,
-                loop: { active: false },
-            })
+            videoElement.src = proxyUrl
+            videoElement.load()
+
+            // Auto-play after source change
+            if (videoElement.play) {
+                videoElement.play().catch((e: unknown) => {
+                    console.debug('Autoplay suppressed:', e instanceof Error ? e.message : e)
+                })
+            }
         } catch (e) {
-            // Suppress initialization errors
-            plyrRef.current = null
+            console.error('Failed to load video:', e)
         }
 
         return () => {
-            // Cleanup
+            // Only clean up on unmount, not on every source change
+        }
+    }, [selectedChannel])
+
+    // Clean up player on component unmount
+    useEffect(() => {
+        return () => {
             if (plyrRef.current) {
                 try {
                     plyrRef.current.destroy()
+                    plyrRef.current = null
                 } catch (e) {
-                    // Suppress errors
+                    // Suppress cleanup errors
                 }
-                plyrRef.current = null
             }
         }
-    }, [selectedChannel])
+    }, [])
 
     if (loading) {
         return <Waiting />
