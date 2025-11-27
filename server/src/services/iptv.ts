@@ -266,6 +266,9 @@ function parseIPTVData(data: any): IPTVChannel[] {
 export function IPTVService() {
     const db: DB = getDB()
     return new Elysia({ aot: false })
+        .header('Access-Control-Allow-Origin', '*')
+        .header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
+        .header('Access-Control-Allow-Headers', 'Range, Content-Type, Accept-Encoding')
         .get('/iptv/channels', async ({ query }: { query: { force_refresh?: string } }) => {
             const forceRefresh = query.force_refresh === '1' || query.force_refresh === 'true'
             const channels = await fetchIPTVChannels(db, forceRefresh)
@@ -440,10 +443,7 @@ export function IPTVService() {
                 // Return appropriate headers for video streaming
                 const responseHeaders: Record<string, string> = {
                     'Content-Type': isM3U8 ? 'application/vnd.apple.mpegurl' : contentType,
-                    'Accept-Ranges': 'bytes',
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-                    'Access-Control-Allow-Headers': 'Range, Content-Type'
+                    'Accept-Ranges': 'bytes'
                 }
 
                 // Update content-length for rewritten M3U8
