@@ -156,7 +156,7 @@ export function IPTVPage() {
                         }
                     }
                 })
-                .catch(() => {
+                .catch((_: unknown) => {
                     // Ignore source fetch errors
                 })
         }
