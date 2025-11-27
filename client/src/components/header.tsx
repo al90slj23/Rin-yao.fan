@@ -212,7 +212,7 @@ function CacheClearButton({ className }: { className?: string }) {
             }
 
             window.location.href = window.location.href + '?t=' + Date.now()
-        } catch (e) {
+        } catch (e: unknown) {
             console.error('Cache clear error:', e)
             window.location.reload()
         }

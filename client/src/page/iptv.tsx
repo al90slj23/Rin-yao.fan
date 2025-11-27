@@ -43,7 +43,7 @@ export function IPTVPage() {
         if (saved) {
             try {
                 setChannelStatus(JSON.parse(saved))
-            } catch (e) {
+            } catch (e: unknown) {
                 console.error('Failed to load channel status:', e)
             }
         }
@@ -113,7 +113,7 @@ export function IPTVPage() {
                     timestamp: Date.now(),
                     error: false
                 }
-            } catch (err) {
+            } catch (err: unknown) {
                 newStatus[channel.id] = {
                     responseTime: 0,
                     timestamp: Date.now(),
@@ -251,7 +251,7 @@ export function IPTVPage() {
                     autoplay: true,
                     loop: { active: false },
                 })
-            } catch (e) {
+            } catch (e: unknown) {
                 console.error('Plyr init failed:', e)
                 plyrRef.current = null
                 return
@@ -269,7 +269,7 @@ export function IPTVPage() {
                     console.debug('Autoplay suppressed:', e instanceof Error ? e.message : e)
                 })
             }
-        } catch (e) {
+        } catch (e: unknown) {
             console.error('Failed to load video:', e)
         }
 
