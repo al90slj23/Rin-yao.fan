@@ -211,14 +211,44 @@ export function IPTVPage() {
                                         </>
                                     )}
                                 </div>
-                                <button
-                                    onClick={() => fetchChannels(true)}
-                                    disabled={refreshing}
-                                    className="ml-3 flex-shrink-0 p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-all"
-                                    title={t('reload')}
-                                >
-                                    <i className={`ri-refresh-line text-lg ${refreshing ? 'animate-spin' : ''}`}></i>
-                                </button>
+                                <div className="ml-3 flex-shrink-0 flex gap-2">
+                                    <button
+                                        onClick={() => {
+                                            // Clear browser cache and reload
+                                            try {
+                                                // Clear localStorage and sessionStorage
+                                                localStorage.clear()
+                                                sessionStorage.clear()
+
+                                                // Clear service worker cache if available
+                                                if ('caches' in window) {
+                                                    caches.keys().then(names => {
+                                                        names.forEach(name => caches.delete(name))
+                                                    })
+                                                }
+
+                                                // Force reload without cache
+                                                window.location.href = window.location.href + '?t=' + Date.now()
+                                            } catch (e) {
+                                                console.error('Cache clear error:', e)
+                                                // Fallback: just reload
+                                                window.location.reload()
+                                            }
+                                        }}
+                                        className="flex-shrink-0 p-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-all"
+                                        title="清除缓存并刷新 / Clear cache and refresh"
+                                    >
+                                        <i className="ri-delete-bin-line text-lg"></i>
+                                    </button>
+                                    <button
+                                        onClick={() => fetchChannels(true)}
+                                        disabled={refreshing}
+                                        className="flex-shrink-0 p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-all"
+                                        title={t('reload')}
+                                    >
+                                        <i className={`ri-refresh-line text-lg ${refreshing ? 'animate-spin' : ''}`}></i>
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Video Player Container */}
