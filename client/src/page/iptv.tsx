@@ -230,7 +230,6 @@ export function IPTVPage() {
                                         {selectedChannel.url ? (
                                             <video
                                                 ref={playerRef}
-                                                key={selectedChannel.id}
                                                 crossOrigin="anonymous"
                                                 playsInline
                                                 className="w-full h-full object-contain"
