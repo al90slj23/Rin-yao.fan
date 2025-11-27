@@ -15,6 +15,12 @@ interface IPTVChannel {
     group?: string
 }
 
+interface ChannelStatus {
+    responseTime?: number // in milliseconds
+    timestamp?: number
+    error?: boolean
+}
+
 export function IPTVPage() {
     const [loading, setLoading] = useState(true)
     const [refreshing, setRefreshing] = useState(false)
@@ -22,10 +28,106 @@ export function IPTVPage() {
     const [allChannels, setAllChannels] = useState<IPTVChannel[]>([])
     const [currentSourceName, setCurrentSourceName] = useState<string>('')
     const [sidebarOpen, setSidebarOpen] = useState(true)
+    const [channelStatus, setChannelStatus] = useState<Record<string, ChannelStatus>>({})
+    const [isTesting, setIsTesting] = useState(false)
     const playerRef = useRef<HTMLVideoElement>(null)
     const plyrRef = useRef<Plyr | null>(null)
     const fetchRef = useRef(false)
     const { t } = useTranslation()
+
+    // Load channel status from localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem('iptv_channel_status')
+        if (saved) {
+            try {
+                setChannelStatus(JSON.parse(saved))
+            } catch (e) {
+                console.error('Failed to load channel status:', e)
+            }
+        }
+    }, [])
+
+    // Save channel status to localStorage
+    const saveChannelStatus = (status: Record<string, ChannelStatus>) => {
+        setChannelStatus(status)
+        localStorage.setItem('iptv_channel_status', JSON.stringify(status))
+    }
+
+    // Get status color and text for a channel
+    function getStatusIndicator(status?: ChannelStatus) {
+        if (!status || !status.responseTime) return null
+
+        const ms = status.responseTime
+        const sec = (ms / 1000).toFixed(2)
+
+        if (status.error) {
+            return { text: '✗', color: 'text-red-500', bg: 'bg-red-900' }
+        }
+
+        if (ms < 3000) {
+            return { text: `${ms}ms`, color: 'text-green-500', bg: 'bg-green-900' }
+        } else if (ms < 8000) {
+            return { text: `${sec}s`, color: 'text-yellow-500', bg: 'bg-yellow-900' }
+        } else if (ms < 15000) {
+            return { text: `${sec}s`, color: 'text-orange-500', bg: 'bg-orange-900' }
+        } else {
+            return { text: `${sec}s`, color: 'text-red-500', bg: 'bg-red-900' }
+        }
+    }
+
+    // Test all channels
+    async function testAllChannels() {
+        if (isTesting || allChannels.length === 0) return
+
+        setIsTesting(true)
+        const newStatus: Record<string, ChannelStatus> = { ...channelStatus }
+        const timeout = 20000 // 20 seconds timeout per channel
+
+        for (const channel of allChannels) {
+            try {
+                const startTime = performance.now()
+                const controller = new AbortController()
+                const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+                const response = await fetch(channel.url, {
+                    method: 'HEAD',
+                    signal: controller.signal,
+                    mode: 'no-cors',
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }
+                }).catch(() => {
+                    // Fallback to GET if HEAD is not supported
+                    return fetch(channel.url, {
+                        method: 'GET',
+                        signal: controller.signal,
+                        mode: 'no-cors',
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                        }
+                    })
+                })
+
+                clearTimeout(timeoutId)
+                const responseTime = Math.round(performance.now() - startTime)
+
+                newStatus[channel.id] = {
+                    responseTime,
+                    timestamp: Date.now(),
+                    error: false
+                }
+            } catch (err) {
+                newStatus[channel.id] = {
+                    responseTime: 0,
+                    timestamp: Date.now(),
+                    error: true
+                }
+            }
+        }
+
+        saveChannelStatus(newStatus)
+        setIsTesting(false)
+    }
 
     function fetchChannels(isRefresh = false) {
         if (isRefresh) {
@@ -211,16 +313,6 @@ export function IPTVPage() {
                                         </>
                                     )}
                                 </div>
-                                <div className="ml-3 flex-shrink-0 flex gap-2">
-                                    <button
-                                        onClick={() => fetchChannels(true)}
-                                        disabled={refreshing}
-                                        className="flex-shrink-0 p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition-all"
-                                        title={t('reload')}
-                                    >
-                                        <i className={`ri-refresh-line text-lg ${refreshing ? 'animate-spin' : ''}`}></i>
-                                    </button>
-                                </div>
                             </div>
 
                             {/* Video Player Container */}
@@ -251,7 +343,22 @@ export function IPTVPage() {
                             <div className="flex-shrink-0 border-b border-gray-800">
                                 <div className="flex items-center justify-between p-2 md:p-3">
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="text-sm md:text-lg font-bold text-white">{t('iptv.channels')} ({channelList.length})</h3>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-sm md:text-lg font-bold text-white">{t('iptv.channels')} ({channelList.length})</h3>
+                                            {/* Test channels button */}
+                                            <button
+                                                onClick={() => testAllChannels()}
+                                                disabled={isTesting}
+                                                className={`flex-shrink-0 p-1.5 rounded text-white transition-all ${
+                                                    isTesting
+                                                        ? 'bg-gray-700 cursor-not-allowed opacity-50'
+                                                        : 'bg-blue-600 hover:bg-blue-700'
+                                                }`}
+                                                title="Test channel connection speed"
+                                            >
+                                                <i className={`ri-bolt-line ${isTesting ? 'animate-spin' : ''}`}></i>
+                                            </button>
+                                        </div>
                                         {currentSourceName && (
                                             <p className="text-xs text-gray-400 truncate mt-1">{t('iptv.source')}: {currentSourceName}</p>
                                         )}
@@ -305,10 +412,20 @@ export function IPTVPage() {
                                                         <p className="text-xs opacity-60 truncate">{channel.group}</p>
                                                     )}
                                                 </div>
-                                                {/* Indicator */}
-                                                {selectedChannel?.id === channel.id && (
-                                                    <i className="ri-check-line flex-shrink-0 text-xs"></i>
-                                                )}
+                                                {/* Status Indicator */}
+                                                <div className="flex items-center gap-1 flex-shrink-0">
+                                                    {(() => {
+                                                        const status = getStatusIndicator(channelStatus[channel.id])
+                                                        return status ? (
+                                                            <span className={`text-xs font-semibold whitespace-nowrap ${status.color}`}>
+                                                                {status.text}
+                                                            </span>
+                                                        ) : null
+                                                    })()}
+                                                    {selectedChannel?.id === channel.id && (
+                                                        <i className="ri-check-line flex-shrink-0 text-xs"></i>
+                                                    )}
+                                                </div>
                                             </button>
                                         ))}
                                     </div>
