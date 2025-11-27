@@ -29,6 +29,9 @@ export function IPTVPage() {
     const [sidebarOpen, setSidebarOpen] = useState(true)
     const [channelStatus, setChannelStatus] = useState<Record<string, ChannelStatus>>({})
     const [isTesting, setIsTesting] = useState(false)
+    const [showAddChannel, setShowAddChannel] = useState(false)
+    const [addChannelUrl, setAddChannelUrl] = useState('')
+    const [addChannelName, setAddChannelName] = useState('')
     const playerRef = useRef<HTMLVideoElement>(null)
     const plyrRef = useRef<Plyr | null>(null)
     const fetchRef = useRef(false)
@@ -126,6 +129,23 @@ export function IPTVPage() {
 
         saveChannelStatus(newStatus)
         setIsTesting(false)
+    }
+
+    function addTestChannel() {
+        if (!addChannelUrl.trim()) return
+
+        const testChannel: IPTVChannel = {
+            id: `test_${Date.now()}`,
+            name: addChannelName.trim() || 'Test Channel',
+            url: addChannelUrl.trim(),
+            group: 'Test'
+        }
+
+        setAllChannels([testChannel, ...allChannels])
+        setSelectedChannel(testChannel)
+        setAddChannelUrl('')
+        setAddChannelName('')
+        setShowAddChannel(false)
     }
 
     function fetchChannels(isRefresh = false) {
@@ -336,7 +356,7 @@ export function IPTVPage() {
                             <div className="flex-shrink-0 border-b border-gray-800">
                                 <div className="flex items-center justify-between p-2 md:p-3">
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 flex-wrap">
                                             <h3 className="text-sm md:text-lg font-bold text-white">{t('iptv.channels')} ({channelList.length})</h3>
                                             {/* Test channels button */}
                                             <button
@@ -351,6 +371,15 @@ export function IPTVPage() {
                                             >
                                                 <i className={`ri-speed-line ${isTesting ? 'animate-spin' : ''}`}></i>
                                                 <span className="text-xs hidden sm:inline">Test</span>
+                                            </button>
+                                            {/* Add channel button */}
+                                            <button
+                                                onClick={() => setShowAddChannel(!showAddChannel)}
+                                                className="flex-shrink-0 p-1.5 rounded text-white transition-all flex items-center gap-1 bg-purple-600 hover:bg-purple-700"
+                                                title="Add test channel"
+                                            >
+                                                <i className="ri-add-line"></i>
+                                                <span className="text-xs hidden sm:inline">Add</span>
                                             </button>
                                         </div>
                                         {currentSourceName && (
@@ -367,6 +396,45 @@ export function IPTVPage() {
                                     </button>
                                 </div>
                             </div>
+
+                            {/* Add Channel Form */}
+                            {showAddChannel && (
+                                <div className="flex-shrink-0 border-b border-gray-800 p-2 md:p-3 space-y-2 bg-gray-900">
+                                    <input
+                                        type="text"
+                                        placeholder="Channel name (optional)"
+                                        value={addChannelName}
+                                        onChange={(e) => setAddChannelName(e.target.value)}
+                                        className="w-full px-2 py-1.5 text-xs rounded bg-gray-800 text-white placeholder-gray-500 border border-gray-700"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Stream URL (m3u8 or mp4)"
+                                        value={addChannelUrl}
+                                        onChange={(e) => setAddChannelUrl(e.target.value)}
+                                        className="w-full px-2 py-1.5 text-xs rounded bg-gray-800 text-white placeholder-gray-500 border border-gray-700"
+                                    />
+                                    <div className="flex gap-1">
+                                        <button
+                                            onClick={addTestChannel}
+                                            disabled={!addChannelUrl.trim()}
+                                            className="flex-1 px-2 py-1 text-xs rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition"
+                                        >
+                                            Add
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setShowAddChannel(false)
+                                                setAddChannelUrl('')
+                                                setAddChannelName('')
+                                            }}
+                                            className="flex-1 px-2 py-1 text-xs rounded bg-gray-700 text-white hover:bg-gray-600 transition"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Channels Scroll Area */}
                             {sidebarOpen && (
