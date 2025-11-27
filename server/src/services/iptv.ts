@@ -383,7 +383,7 @@ export function IPTVService() {
             }
 
             try {
-                // Decode the URL if it's base64 encoded, otherwise use as-is
+                // Decode the URL if it's encoded, otherwise use as-is
                 let decodedUrl = videoUrl
                 try {
                     decodedUrl = decodeURIComponent(videoUrl)
@@ -391,10 +391,17 @@ export function IPTVService() {
                     // If decode fails, use original URL
                 }
 
+                // Upgrade HTTP to HTTPS for better compatibility and security
+                // (browsers block mixed content with HTTPS pages)
+                if (decodedUrl.startsWith('http://')) {
+                    decodedUrl = 'https://' + decodedUrl.substring(7)
+                }
+
                 const response = await fetch(decodedUrl, {
                     method: 'GET',
                     headers: {
-                        'User-Agent': 'Rin-IPTV-Player/1.0'
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        'Referer': 'https://yao.fan/'
                     }
                 })
 

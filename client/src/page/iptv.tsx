@@ -119,50 +119,51 @@ export function IPTVPage() {
 
     // Initialize Plyr player when channel changes or player ref is ready
     useEffect(() => {
-        if (playerRef.current && selectedChannel?.url) {
-            // Destroy existing player instance safely
-            if (plyrRef.current) {
-                try {
-                    plyrRef.current.destroy()
-                } catch (err) {
-                    // Ignore cleanup errors if element is already removed
-                    console.warn('Error destroying Plyr instance:', err)
-                }
-                plyrRef.current = null
-            }
+        const videoElement = playerRef.current
+        if (!videoElement || !selectedChannel?.url) return
 
-            // Update video source - use proxy to bypass CORS
-            playerRef.current.src = getProxyUrl(selectedChannel.url)
-
-            // Initialize new Plyr instance with error handling
+        // Clean up previous instance
+        const oldPlayer = plyrRef.current
+        if (oldPlayer) {
             try {
-                plyrRef.current = new Plyr(playerRef.current, {
-                    controls: [
-                        'play-large',
-                        'play',
-                        'progress',
-                        'current-time',
-                        'mute',
-                        'volume',
-                        'fullscreen'
-                    ],
-                    quality: { default: 360, options: [360, 720, 1080] },
-                    autoplay: true,
-                    loop: { active: false },
-                })
-            } catch (err) {
-                console.error('Error initializing Plyr:', err)
+                oldPlayer.destroy()
+            } catch (e) {
+                // Suppress destroy errors
             }
+            plyrRef.current = null
+        }
+
+        // Set video source
+        videoElement.src = getProxyUrl(selectedChannel.url)
+
+        // Create new player
+        try {
+            plyrRef.current = new Plyr(videoElement, {
+                controls: [
+                    'play-large',
+                    'play',
+                    'progress',
+                    'current-time',
+                    'mute',
+                    'volume',
+                    'fullscreen'
+                ],
+                quality: { default: 360, options: [360, 720, 1080] },
+                autoplay: true,
+                loop: { active: false },
+            })
+        } catch (e) {
+            // Suppress initialization errors
+            plyrRef.current = null
         }
 
         return () => {
-            // Cleanup on unmount - safely destroy player
-            if (plyrRef.current && playerRef.current) {
+            // Cleanup
+            if (plyrRef.current) {
                 try {
                     plyrRef.current.destroy()
-                } catch (err) {
-                    // Ignore cleanup errors if element is already removed
-                    console.warn('Error destroying Plyr on unmount:', err)
+                } catch (e) {
+                    // Suppress errors
                 }
                 plyrRef.current = null
             }
