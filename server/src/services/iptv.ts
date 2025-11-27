@@ -376,7 +376,7 @@ export function IPTVService() {
                 timestamp: new Date().toISOString(),
             }
         })
-        .get('/iptv/video-proxy', async ({ query, headers }: { query: any, headers: any }) => {
+        .get('/iptv/video-proxy', async ({ query, headers, request }: { query: any, headers: any, request: Request }) => {
             const videoUrl = query?.url
             if (!videoUrl) {
                 return new Response('Video URL is required', { status: 400 })
@@ -391,7 +391,7 @@ export function IPTVService() {
                     // If decode fails, use original URL
                 }
 
-                // Build request headers that mimic a real browser without revealing proxy nature
+                // Build request headers that mimic a real browser
                 const fetchHeaders: Record<string, string> = {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     'Accept': '*/*',
@@ -416,20 +416,44 @@ export function IPTVService() {
 
                 // Get the content type from the original response
                 const contentType = response.headers.get('content-type') || 'video/mp2t'
-                const buffer = await response.arrayBuffer()
+
+                // Check if this is an M3U8/M3U playlist file
+                const isM3U8 = contentType.includes('application/vnd.apple.mpegurl') ||
+                              contentType.includes('application/x-mpegURL') ||
+                              decodedUrl.toLowerCase().endsWith('.m3u8') ||
+                              decodedUrl.toLowerCase().endsWith('.m3u')
+
+                let responseBody: any = await response.arrayBuffer()
+
+                // If it's an M3U8 file, parse and rewrite URLs
+                if (isM3U8) {
+                    try {
+                        const text = new TextDecoder().decode(responseBody)
+                        const rewrittenM3U8 = rewriteM3U8Playlist(text, decodedUrl, request)
+                        responseBody = new TextEncoder().encode(rewrittenM3U8)
+                    } catch (err) {
+                        console.warn('Failed to parse M3U8, serving raw:', err)
+                        // If parsing fails, serve as-is
+                    }
+                }
 
                 // Return appropriate headers for video streaming
                 const responseHeaders: Record<string, string> = {
-                    'Content-Type': contentType,
-                    'Accept-Ranges': 'bytes'
+                    'Content-Type': isM3U8 ? 'application/vnd.apple.mpegurl' : contentType,
+                    'Accept-Ranges': 'bytes',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Range, Content-Type'
                 }
 
-                // Pass through content-length if available
-                if (response.headers.has('content-length')) {
+                // Update content-length for rewritten M3U8
+                if (typeof responseBody === 'object' && responseBody instanceof ArrayBuffer) {
+                    responseHeaders['Content-Length'] = responseBody.byteLength.toString()
+                } else if (response.headers.has('content-length') && !isM3U8) {
                     responseHeaders['Content-Length'] = response.headers.get('content-length')!
                 }
 
-                return new Response(buffer, {
+                return new Response(responseBody, {
                     status: 200,
                     headers: responseHeaders
                 })
@@ -438,4 +462,52 @@ export function IPTVService() {
                 return new Response('Error fetching video', { status: 500 })
             }
         })
+
+        /**
+         * Rewrite M3U8 playlist URLs to route through proxy
+         */
+        function rewriteM3U8Playlist(content: string, baseUrl: string, request: Request): string {
+            const lines = content.split('\n')
+            const rewritten: string[] = []
+
+            // Get the base domain of the original URL for resolving relative paths
+            const urlObj = new URL(baseUrl)
+            const baseDir = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1)
+
+            // Get the proxy base URL from the request
+            const proxyHost = request.headers.get('origin') || new URL(request.url).origin
+            const proxyBase = `${proxyHost}/iptv/video-proxy`
+
+            for (const line of lines) {
+                const trimmed = line.trim()
+
+                // Check if this line is a URL (not a comment, not empty, not a directive)
+                if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('EXT')) {
+                    try {
+                        // Determine if URL is relative or absolute
+                        let absoluteUrl = trimmed
+
+                        if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.startsWith('//')) {
+                            // Relative URL - resolve against base directory
+                            absoluteUrl = new URL(trimmed, baseDir).toString()
+                        } else if (trimmed.startsWith('//')) {
+                            // Protocol-relative URL
+                            absoluteUrl = urlObj.protocol + trimmed
+                        }
+
+                        // Rewrite to use proxy
+                        const proxyUrl = `${proxyBase}?url=${encodeURIComponent(absoluteUrl)}`
+                        rewritten.push(proxyUrl)
+                    } catch (err) {
+                        console.warn('Failed to rewrite URL:', trimmed, err)
+                        rewritten.push(line) // Keep original on error
+                    }
+                } else {
+                    // Keep comments and directives as-is
+                    rewritten.push(line)
+                }
+            }
+
+            return rewritten.join('\n')
+        }
 }
