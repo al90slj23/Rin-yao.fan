@@ -131,7 +131,16 @@ async function fetchIPTVChannels(db: DB, forceRefresh = false): Promise<IPTVChan
 
                     if (!response.ok) continue
 
-                    const data: any = await response.json()
+                    // Try to parse as text first (for M3U format), then fall back to JSON
+                    const contentType = response.headers.get('content-type') || ''
+                    let data: any
+
+                    if (contentType.includes('application/json')) {
+                        data = await response.json()
+                    } else {
+                        // Default to text parsing (handles M3U and other text formats)
+                        data = await response.text()
+                    }
                     channels = parseIPTVData(data)
                 }
 
