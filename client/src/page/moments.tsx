@@ -104,8 +104,8 @@ export function MomentsPage() {
                 setIsModalOpen(false)
                 fetchMoments(1, false)
                 showAlert(t('update.success'))
-            }).catch(error => {
-                showAlert(t('update.failed$message', { message: error.message }))
+            }).catch((error: unknown) => {
+                showAlert(t('update.failed$message', { message: error instanceof Error ? error.message : String(error) }))
             }).finally(() => {
                 setLoading(false)
             })
@@ -118,20 +118,20 @@ export function MomentsPage() {
                 setIsModalOpen(false)
                 fetchMoments(1, false)
                 showAlert(t('publish.success'))
-            }).catch(error => {
-                showAlert(t('publish.failed$message', { message: error.message }))
+            }).catch((error: unknown) => {
+                showAlert(t('publish.failed$message', { message: error instanceof Error ? error.message : String(error) }))
             }).finally(() => {
                 setLoading(false)
             })
         }
     }
-    
+
     function handleEdit(moment: Moment) {
         setEditingMoment(moment)
         setContent(moment.content)
         setIsModalOpen(true)
     }
-    
+
     function handleDelete(id: number) {
         showConfirm(
             t("delete.title"),
@@ -142,8 +142,8 @@ export function MomentsPage() {
                 }).then(() => {
                     fetchMoments(1, false)
                     showAlert(t('delete.success'))
-                }).catch(error => {
-                    showAlert(t('delete.failed$message', { message: error.message }))
+                }).catch((error: unknown) => {
+                    showAlert(t('delete.failed$message', { message: error instanceof Error ? error.message : String(error) }))
                 })
             }
         )

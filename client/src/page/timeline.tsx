@@ -39,7 +39,7 @@ export function TimelinePage() {
                 setFeeds(groups)
             }
         })
-        .catch(err => {
+        .catch((err: unknown) => {
             console.error("fetchFeeds error:", err)
         })
     }

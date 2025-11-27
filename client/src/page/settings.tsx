@@ -285,8 +285,8 @@ function ItemSwitch({ title, description, type, configKey }: { title: string, de
                 }
             }
             setLoading(false);
-        }).catch((err) => {
-            showAlert(t('settings.update_failed$message', { message: err.message }))
+        }).catch((err: unknown) => {
+            showAlert(t('settings.update_failed$message', { message: err instanceof Error ? err.message : String(err) }))
             setChecked(checkedValue);
             setLoading(false);
         })
@@ -350,8 +350,8 @@ function ItemInput({ title, configKeyTitle, description, type, configKey }: { ti
                 }
             }
             setLoading(false);
-        }).catch((err) => {
-            showAlert(t('settings.update_failed$message', { message: err.message }))
+        }).catch((err: unknown) => {
+            showAlert(t('settings.update_failed$message', { message: err instanceof Error ? err.message : String(err) }))
             setValue(config?.get<string>(configKey) || "");
             setLoading(false);
         })
