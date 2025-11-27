@@ -77,7 +77,7 @@ export function IPTVPage() {
         }
     }
 
-    // Test all channels
+    // Test all channels via proxy to bypass mixed content blocking (HTTP from HTTPS page)
     async function testAllChannels() {
         if (isTesting || allChannels.length === 0) return
 
@@ -91,22 +91,17 @@ export function IPTVPage() {
                 const controller = new AbortController()
                 const timeoutId = setTimeout(() => controller.abort(), timeout)
 
-                await fetch(channel.url, {
+                // Route through proxy to convert HTTP->HTTPS and bypass mixed content policy
+                const proxyUrl = `${endpoint}/iptv/video-proxy?url=${encodeURIComponent(channel.url)}`
+
+                await fetch(proxyUrl, {
                     method: 'HEAD',
-                    signal: controller.signal,
-                    mode: 'no-cors',
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                    }
+                    signal: controller.signal
                 }).catch(() => {
                     // Fallback to GET if HEAD is not supported
-                    return fetch(channel.url, {
+                    return fetch(proxyUrl, {
                         method: 'GET',
-                        signal: controller.signal,
-                        mode: 'no-cors',
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                        }
+                        signal: controller.signal
                     })
                 })
 
