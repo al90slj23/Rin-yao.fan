@@ -206,8 +206,8 @@ function CacheClearButton({ className }: { className?: string }) {
             sessionStorage.clear()
 
             if ('caches' in window) {
-                caches.keys().then(names => {
-                    names.forEach(name => caches.delete(name))
+                caches.keys().then((names: string[]) => {
+                    names.forEach((name: string) => caches.delete(name))
                 })
             }
 

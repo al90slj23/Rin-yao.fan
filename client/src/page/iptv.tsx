@@ -164,15 +164,15 @@ export function IPTVPage() {
         // If forcing refresh, use the refresh endpoint instead
         if (isRefresh) {
             client.iptv.refresh.post({})
-                .then((): Promise<unknown[]> => {
+                .then(() => {
                     // After refresh, fetch the updated channels and source name
                     return Promise.all([
                         client.iptv.channels.get(),
                         fetchSourceName()
-                    ]) as Promise<unknown[]>
+                    ])
                 })
-                .then((results: unknown[]) => {
-                    const channelsRes = results[0] as any
+                .then((results: any[]) => {
+                    const channelsRes = results[0]
                     const { data } = channelsRes
                     if (data && typeof data !== 'string') {
                         const arr = Array.isArray(data) ? data : []
@@ -193,9 +193,9 @@ export function IPTVPage() {
             Promise.all([
                 client.iptv.channels.get(),
                 fetchSourceName()
-            ] as const)
-                .then((results) => {
-                    const channelsRes = results[0] as any
+            ])
+                .then((results: any[]) => {
+                    const channelsRes = results[0]
                     const { data } = channelsRes
                     if (data && typeof data !== 'string') {
                         const arr = Array.isArray(data) ? data : []
