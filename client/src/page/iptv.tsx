@@ -23,7 +23,6 @@ interface ChannelStatus {
 
 export function IPTVPage() {
     const [loading, setLoading] = useState(true)
-    const [refreshing, setRefreshing] = useState(false)
     const [selectedChannel, setSelectedChannel] = useState<IPTVChannel | null>(null)
     const [allChannels, setAllChannels] = useState<IPTVChannel[]>([])
     const [currentSourceName, setCurrentSourceName] = useState<string>('')
@@ -89,7 +88,7 @@ export function IPTVPage() {
                 const controller = new AbortController()
                 const timeoutId = setTimeout(() => controller.abort(), timeout)
 
-                const response = await fetch(channel.url, {
+                await fetch(channel.url, {
                     method: 'HEAD',
                     signal: controller.signal,
                     mode: 'no-cors',
@@ -130,9 +129,6 @@ export function IPTVPage() {
     }
 
     function fetchChannels(isRefresh = false) {
-        if (isRefresh) {
-            setRefreshing(true)
-        }
 
         // Fetch sources to get current source name
         const fetchSourceName = () => {
@@ -176,9 +172,6 @@ export function IPTVPage() {
                 })
                 .catch((err: unknown) => {
                     console.error("fetchChannels error:", err)
-                })
-                .finally(() => {
-                    setRefreshing(false)
                 })
         } else {
             Promise.all([
