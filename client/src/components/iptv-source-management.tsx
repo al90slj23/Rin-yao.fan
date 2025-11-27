@@ -36,8 +36,8 @@ export function IPTVSourceManagement() {
             if (response.data && typeof response.data !== 'string') {
                 setSources(Array.isArray(response.data) ? response.data : [])
             }
-        } catch (err: any) {
-            showAlert(t('iptv.source_error') + ': ' + err.message)
+        } catch (err: unknown) {
+            showAlert(t('iptv.source_error') + ': ' + (err instanceof Error ? err.message : String(err)))
         } finally {
             setLoading(false)
         }
@@ -59,8 +59,8 @@ export function IPTVSourceManagement() {
             setNewSourceForm({ name: '', url: '' })
             setShowAddForm(false)
             await fetchSources()
-        } catch (err: any) {
-            showAlert(t('iptv.source_error') + ': ' + err.message)
+        } catch (err: unknown) {
+            showAlert(t('iptv.source_error') + ': ' + (err instanceof Error ? err.message : String(err)))
         }
     }
 
@@ -79,8 +79,8 @@ export function IPTVSourceManagement() {
             setEditingId(null)
             setEditForm({ name: '', url: '' })
             await fetchSources()
-        } catch (err: any) {
-            showAlert(t('iptv.source_error') + ': ' + err.message)
+        } catch (err: unknown) {
+            showAlert(t('iptv.source_error') + ': ' + (err instanceof Error ? err.message : String(err)))
         }
     }
 
@@ -90,8 +90,8 @@ export function IPTVSourceManagement() {
                 enabled: !currentEnabled
             })
             await fetchSources()
-        } catch (err: any) {
-            showAlert(t('iptv.source_error') + ': ' + err.message)
+        } catch (err: unknown) {
+            showAlert(t('iptv.source_error') + ': ' + (err instanceof Error ? err.message : String(err)))
         }
     }
 
@@ -104,7 +104,7 @@ export function IPTVSourceManagement() {
                     await client.iptv.sources({ id: sourceId }).delete()
                     showAlert(t('iptv.source_deleted'))
                     await fetchSources()
-                } catch (err: any) {
+                } catch (err: unknown) {
                     showAlert(t('iptv.source_error') + ': ' + err.message)
                 }
             }
