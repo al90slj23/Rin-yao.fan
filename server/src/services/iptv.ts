@@ -391,17 +391,17 @@ export function IPTVService() {
                     // If decode fails, use original URL
                 }
 
-                // Upgrade HTTP to HTTPS for better compatibility and security
-                // (browsers block mixed content with HTTPS pages)
-                if (decodedUrl.startsWith('http://')) {
-                    decodedUrl = 'https://' + decodedUrl.substring(7)
-                }
+                // Keep original protocol - don't force HTTPS if server expects HTTP
+                // Some IPTV servers may not support HTTPS or may have certificate issues
 
                 const response = await fetch(decodedUrl, {
                     method: 'GET',
                     headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                        'Referer': 'https://yao.fan/'
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                        'Accept': '*/*',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Cache-Control': 'no-cache',
+                        'Pragma': 'no-cache'
                     }
                 })
 
