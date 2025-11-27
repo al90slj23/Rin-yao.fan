@@ -120,35 +120,51 @@ export function IPTVPage() {
     // Initialize Plyr player when channel changes or player ref is ready
     useEffect(() => {
         if (playerRef.current && selectedChannel?.url) {
-            // Destroy existing player instance
+            // Destroy existing player instance safely
             if (plyrRef.current) {
-                plyrRef.current.destroy()
+                try {
+                    plyrRef.current.destroy()
+                } catch (err) {
+                    // Ignore cleanup errors if element is already removed
+                    console.warn('Error destroying Plyr instance:', err)
+                }
+                plyrRef.current = null
             }
 
             // Update video source - use proxy to bypass CORS
             playerRef.current.src = getProxyUrl(selectedChannel.url)
 
-            // Initialize new Plyr instance
-            plyrRef.current = new Plyr(playerRef.current, {
-                controls: [
-                    'play-large',
-                    'play',
-                    'progress',
-                    'current-time',
-                    'mute',
-                    'volume',
-                    'fullscreen'
-                ],
-                quality: { default: 360, options: [360, 720, 1080] },
-                autoplay: true,
-                loop: { active: false },
-            })
+            // Initialize new Plyr instance with error handling
+            try {
+                plyrRef.current = new Plyr(playerRef.current, {
+                    controls: [
+                        'play-large',
+                        'play',
+                        'progress',
+                        'current-time',
+                        'mute',
+                        'volume',
+                        'fullscreen'
+                    ],
+                    quality: { default: 360, options: [360, 720, 1080] },
+                    autoplay: true,
+                    loop: { active: false },
+                })
+            } catch (err) {
+                console.error('Error initializing Plyr:', err)
+            }
         }
 
         return () => {
-            // Cleanup on unmount
-            if (plyrRef.current) {
-                plyrRef.current.destroy()
+            // Cleanup on unmount - safely destroy player
+            if (plyrRef.current && playerRef.current) {
+                try {
+                    plyrRef.current.destroy()
+                } catch (err) {
+                    // Ignore cleanup errors if element is already removed
+                    console.warn('Error destroying Plyr on unmount:', err)
+                }
+                plyrRef.current = null
             }
         }
     }, [selectedChannel])

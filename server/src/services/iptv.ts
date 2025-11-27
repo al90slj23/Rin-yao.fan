@@ -406,13 +406,11 @@ export function IPTVService() {
                 const contentType = response.headers.get('content-type') || 'video/mp2t'
                 const buffer = await response.arrayBuffer()
 
+                // Note: CORS headers are handled by global CORS middleware, don't duplicate them here
                 return new Response(buffer, {
                     status: 200,
                     headers: {
                         'Content-Type': contentType,
-                        'Access-Control-Allow-Origin': '*',
-                        'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-                        'Access-Control-Allow-Headers': 'Content-Type, Range',
                         'Accept-Ranges': 'bytes'
                     }
                 })
