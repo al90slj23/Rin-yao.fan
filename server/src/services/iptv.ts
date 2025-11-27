@@ -376,7 +376,7 @@ export function IPTVService() {
                 timestamp: new Date().toISOString(),
             }
         })
-        .get('/iptv/video-proxy', async ({ query }: { query: any }) => {
+        .get('/iptv/video-proxy', async ({ query, headers }: { query: any, headers: any }) => {
             const videoUrl = query?.url
             if (!videoUrl) {
                 return new Response('Video URL is required', { status: 400 })
@@ -391,21 +391,23 @@ export function IPTVService() {
                     // If decode fails, use original URL
                 }
 
-                // Keep original protocol - don't force HTTPS if server expects HTTP
-                // Some IPTV servers may not support HTTPS or may have certificate issues
+                // Build minimal request headers - some servers are strict about proxy headers
+                const fetchHeaders: Record<string, string> = {
+                    'User-Agent': 'Mozilla/5.0'
+                }
+
+                // Pass through Range header if present (for streaming support)
+                if (headers['range']) {
+                    fetchHeaders['Range'] = headers['range']
+                }
 
                 const response = await fetch(decodedUrl, {
                     method: 'GET',
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                        'Accept': '*/*',
-                        'Accept-Language': 'en-US,en;q=0.9',
-                        'Cache-Control': 'no-cache',
-                        'Pragma': 'no-cache'
-                    }
+                    headers: fetchHeaders
                 })
 
                 if (!response.ok) {
+                    console.error(`Proxy fetch failed: ${response.status} for URL: ${decodedUrl}`)
                     return new Response('Failed to fetch video', { status: response.status })
                 }
 
@@ -413,13 +415,20 @@ export function IPTVService() {
                 const contentType = response.headers.get('content-type') || 'video/mp2t'
                 const buffer = await response.arrayBuffer()
 
-                // Note: CORS headers are handled by global CORS middleware, don't duplicate them here
+                // Return appropriate headers for video streaming
+                const responseHeaders: Record<string, string> = {
+                    'Content-Type': contentType,
+                    'Accept-Ranges': 'bytes'
+                }
+
+                // Pass through content-length if available
+                if (response.headers.has('content-length')) {
+                    responseHeaders['Content-Length'] = response.headers.get('content-length')!
+                }
+
                 return new Response(buffer, {
                     status: 200,
-                    headers: {
-                        'Content-Type': contentType,
-                        'Accept-Ranges': 'bytes'
-                    }
+                    headers: responseHeaders
                 })
             } catch (err) {
                 console.error('Error proxying video:', err)
