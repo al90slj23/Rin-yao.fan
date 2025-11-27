@@ -172,7 +172,7 @@ export function IPTVPage() {
                     ])
                 })
                 .then(([channelsRes]: any[]) => {
-                    const { data } = channelsRes
+                    const { data }: any = channelsRes
                     if (data && typeof data !== 'string') {
                         const arr = Array.isArray(data) ? data : []
                         setAllChannels(arr)
@@ -194,7 +194,7 @@ export function IPTVPage() {
                 fetchSourceName()
             ])
                 .then(([channelsRes]: any[]) => {
-                    const { data } = channelsRes
+                    const { data }: any = channelsRes
                     if (data && typeof data !== 'string') {
                         const arr = Array.isArray(data) ? data : []
                         setAllChannels(arr)
