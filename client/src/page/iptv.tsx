@@ -342,14 +342,15 @@ export function IPTVPage() {
                                             <button
                                                 onClick={() => testAllChannels()}
                                                 disabled={isTesting}
-                                                className={`flex-shrink-0 p-1.5 rounded text-white transition-all ${
+                                                className={`flex-shrink-0 p-1.5 rounded text-white transition-all flex items-center gap-1 ${
                                                     isTesting
                                                         ? 'bg-gray-700 cursor-not-allowed opacity-50'
                                                         : 'bg-blue-600 hover:bg-blue-700'
                                                 }`}
                                                 title="Test channel connection speed"
                                             >
-                                                <i className={`ri-bolt-line ${isTesting ? 'animate-spin' : ''}`}></i>
+                                                <i className={`ri-speed-line ${isTesting ? 'animate-spin' : ''}`}></i>
+                                                <span className="text-xs hidden sm:inline">Test</span>
                                             </button>
                                         </div>
                                         {currentSourceName && (
@@ -372,10 +373,9 @@ export function IPTVPage() {
                                 <div className="flex-1 overflow-y-auto overflow-x-hidden">
                                     <div className="space-y-0.5 p-1">
                                         {channelList.map(channel => (
-                                            <button
+                                            <div
                                                 key={channel.id}
-                                                onClick={() => setSelectedChannel(channel)}
-                                                className={`w-full flex items-center gap-1.5 p-1.5 rounded transition-all duration-200 text-xs ${
+                                                className={`w-full flex items-center gap-1.5 p-1.5 rounded transition-all duration-200 text-xs group ${
                                                     selectedChannel?.id === channel.id
                                                         ? 'bg-theme text-white shadow-lg'
                                                         : 'bg-gray-800 text-gray-200 hover:bg-gray-700'
@@ -398,13 +398,16 @@ export function IPTVPage() {
                                                         <i className="ri-tv-2-line text-xs"></i>
                                                     )}
                                                 </div>
-                                                {/* Channel Info */}
-                                                <div className="flex-1 min-w-0">
+                                                {/* Channel Info - Clickable */}
+                                                <button
+                                                    onClick={() => setSelectedChannel(channel)}
+                                                    className="flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+                                                >
                                                     <p className="font-semibold text-xs truncate">{channel.name}</p>
                                                     {channel.group && (
                                                         <p className="text-xs opacity-60 truncate">{channel.group}</p>
                                                     )}
-                                                </div>
+                                                </button>
                                                 {/* Status Indicator */}
                                                 <div className="flex items-center gap-1 flex-shrink-0">
                                                     {(() => {
@@ -415,11 +418,23 @@ export function IPTVPage() {
                                                             </span>
                                                         ) : null
                                                     })()}
-                                                    {selectedChannel?.id === channel.id && (
-                                                        <i className="ri-check-line flex-shrink-0 text-xs"></i>
-                                                    )}
                                                 </div>
-                                            </button>
+                                                {/* Copy URL Button */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        navigator.clipboard.writeText(channel.url)
+                                                    }}
+                                                    title="Copy stream URL"
+                                                    className="flex-shrink-0 p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-gray-600 transition-all"
+                                                >
+                                                    <i className="ri-file-copy-line text-xs"></i>
+                                                </button>
+                                                {/* Selected Indicator */}
+                                                {selectedChannel?.id === channel.id && (
+                                                    <i className="ri-check-line flex-shrink-0 text-xs"></i>
+                                                )}
+                                            </div>
                                         ))}
                                     </div>
                                 </div>
