@@ -33,7 +33,7 @@ export function MarkdownEditor({ content, setContent, placeholder = "> Write you
           headers: headersWithAuth(),
         }
       )
-      .then(({ data, error }) => {
+      .then(({ data, error }: any) => {
         if (error) {
           showAlert(t("upload.failed"));
         }
@@ -41,7 +41,7 @@ export function MarkdownEditor({ content, setContent, placeholder = "> Write you
           onSuccess(data);
         }
       })
-      .catch((e: any) => {
+      .catch((e: unknown) => {
         console.error(e);
         showAlert(t("upload.failed"));
       });
