@@ -27,7 +27,7 @@ export function AdjacentSection({id, setError}: { id: string, setError: (error: 
         client.feed
             .adjacent({id})
             .get()
-            .then(({data, error}) => {
+            .then(({data, error}: any) => {
                 if (error) {
                     setError(error.value as string);
                 } else if (data && typeof data !== "string") {

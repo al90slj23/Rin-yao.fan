@@ -61,7 +61,7 @@ export function MomentsPage() {
                 limit: limit
             },
             headers: headersWithAuth()
-        }).then(({ data }) => {
+        }).then(({ data }: any) => {
             if (data && typeof data !== 'string') {
                 setLength(data.size)
                 setHasNextPage(data.hasNext)

@@ -195,7 +195,7 @@ export function WritingPage({ id }: { id?: number }) {
         .get({
           headers: headersWithAuth(),
         })
-        .then(({ data }) => {
+        .then(({ data }: any) => {
           if (data && typeof data !== "string") {
             if (title == "" && data.title) setTitle(data.title);
             if (tags == "" && data.hashtags)

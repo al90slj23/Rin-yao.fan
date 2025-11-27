@@ -44,7 +44,7 @@ export function FeedsPage() {
                 type: type
             },
             headers: headersWithAuth()
-        }).then(({ data }) => {
+        }).then(({ data }: any) => {
             if (data && typeof data !== 'string') {
                 setFeeds({
                     ...feeds,

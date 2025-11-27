@@ -21,7 +21,7 @@ export function HashtagsPage() {
     const ref = useRef(false);
     useEffect(() => {
         if (ref.current) return;
-        client.tag.index.get().then(({ data }) => {
+        client.tag.index.get().then(({ data }: any) => {
             if (data && typeof data !== 'string') {
                 setHashtags(data);
             }

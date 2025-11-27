@@ -22,7 +22,7 @@ export function TimelinePage() {
         client.feed.timeline.get({
             headers: headersWithAuth()
         })
-        .then(({ data }) => {
+        .then(({ data }: any) => {
             if (data && typeof data !== 'string') {
                 const arr = Array.isArray(data) ? data : []
                 setLength(arr.length)

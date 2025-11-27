@@ -67,7 +67,7 @@ export function FeedPage({ id, TOC, clean }: { id: string, TOC: () => JSX.Elemen
           .delete(null, {
             headers: headersWithAuth(),
           })
-          .then(({ error }) => {
+          .then(({ error }: any) => {
             if (error) {
               showAlert(error.value as string);
             } else {
@@ -93,7 +93,7 @@ export function FeedPage({ id, TOC, clean }: { id: string, TOC: () => JSX.Elemen
           }, {
             headers: headersWithAuth(),
           })
-          .then(({ error }) => {
+          .then(({ error }: any) => {
             if (error) {
               showAlert(error.value as string);
             } else {
@@ -395,7 +395,7 @@ function CommentInput({
           headers: headersWithAuth(),
         }
       )
-      .then(({ error }) => {
+      .then(({ error }: any) => {
         if (error) {
           setError(errorHumanize(error.value as string));
         } else {
@@ -469,7 +469,7 @@ function Comments({ id }: { id: string }) {
       .get({
         headers: headersWithAuth(),
       })
-      .then(({ data, error }) => {
+      .then(({ data, error }: any) => {
         if (error) {
           setError(error.value as string);
         } else if (data && Array.isArray(data)) {
@@ -538,7 +538,7 @@ function CommentItem({
           .delete(null, {
             headers: headersWithAuth(),
           })
-          .then(({ error }) => {
+          .then(({ error }: any) => {
             if (error) {
               showAlert(error.value as string);
             } else {

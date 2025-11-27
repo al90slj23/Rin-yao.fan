@@ -31,7 +31,7 @@ export function SearchPage({ keyword }: { keyword: string }) {
                 limit: limit
             },
             headers: headersWithAuth()
-        }).then(({ data }) => {
+        }).then(({ data }: any) => {
             if (data && typeof data !== 'string') {
                 setFeeds(data)
                 setStatus('idle')

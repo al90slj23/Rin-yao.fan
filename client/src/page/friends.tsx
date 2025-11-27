@@ -67,7 +67,7 @@ export function FriendsPage() {
         if (ref.current) return
         client.friend.index.get({
             headers: headersWithAuth()
-        }).then(({ data }) => {
+        }).then(({ data }: any) => {
             if (data) {
                 const friends_available = data.friend_list?.filter(({ health, accepted }) => health.length === 0 && accepted === 1) || []
                 setFriendsAvailable(friends_available)
@@ -166,7 +166,7 @@ function Friend({ friend }: { friend: FriendItem }) {
             () => {
                 client.friend({ id: friend.id }).delete(friend.id, {
                     headers: headersWithAuth()
-                }).then(({ error }) => {
+                }).then(({ error }: any) => {
                     if (error) {
                         showAlert(error.value as string)
                     } else {
@@ -188,7 +188,7 @@ function Friend({ friend }: { friend: FriendItem }) {
             sort_order: sortOrder
         }, {
             headers: headersWithAuth()
-        }).then(({ error }) => {
+        }).then(({ error }: any) => {
             if (error) {
                 showAlert(error.value as string)
             } else {
