@@ -48,7 +48,7 @@ function App() {
     if (getCookie('token')?.length ?? 0 > 0) {
       client.user.profile.get({
         headers: headersWithAuth()
-      }).then(({ data }) => {
+      }).then(({ data }: any) => {
         if (data && typeof data !== 'string') {
           setProfile({
             id: data.id,
@@ -65,7 +65,7 @@ function App() {
       const configWrapper = new ConfigWrapper(configObj, defaultClientConfig)
       setConfig(configWrapper)
     } else {
-      client.config({ type: "client" }).get().then(({ data }) => {
+      client.config({ type: "client" }).get().then(({ data }: any) => {
         if (data && typeof data !== 'string') {
           sessionStorage.setItem('config', JSON.stringify(data))
           const config = new ConfigWrapper(data, defaultClientConfig)

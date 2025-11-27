@@ -113,12 +113,12 @@ export function FeedPage({ id, TOC, clean }: { id: string, TOC: () => JSX.Elemen
       .get({
         headers: headersWithAuth(),
       })
-      .then(({ data, error }) => {
+      .then(({ data, error }: any) => {
         if (error) {
           setError(error.value as string);
         } else if (data && typeof data !== "string") {
           setTimeout(() => {
-            setFeed(data);
+            setFeed(data as Feed);
             setTop(data.top);
             // Extract head image
             const img_reg = /!\[.*?\]\((.*?)\)/;

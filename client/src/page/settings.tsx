@@ -39,14 +39,14 @@ export function Settings() {
             type: 'client'
         }).get({
             headers: headersWithAuth()
-        }).then(({ data }) => {
+        }).then(({ data }: any) => {
             if (data && typeof data !== 'string') {
                 sessionStorage.setItem('config', JSON.stringify(data));
                 const config = new ConfigWrapper(data, defaultClientConfig)
                 setClientConfig(config)
             }
-        }).catch((err: any) => {
-            showAlert(t('settings.get_config_failed$message', { message: err.message }))
+        }).catch((err: unknown) => {
+            showAlert(t('settings.get_config_failed$message', { message: err instanceof Error ? err.message : String(err) }))
         }).finally(() => {
             setClientLoading(false);
         })
@@ -54,13 +54,13 @@ export function Settings() {
             type: 'server'
         }).get({
             headers: headersWithAuth()
-        }).then(({ data }) => {
+        }).then(({ data }: any) => {
             if (data && typeof data !== 'string') {
                 const config = new ConfigWrapper(data, defaultServerConfig)
                 setServerConfig(config)
             }
-        }).catch((err) => {
-            showAlert(t('settings.get_config_failed$message', { message: err.message }))
+        }).catch((err: unknown) => {
+            showAlert(t('settings.get_config_failed$message', { message: err instanceof Error ? err.message : String(err) }))
         }).finally(() => {
             setServerLoading(false);
         })
@@ -88,15 +88,15 @@ export function Settings() {
                         headers: headersWithAuth(),
                     },
                 )
-                .then(({ data }) => {
+                .then(({ data }: any) => {
                     if (data && typeof data !== "string") {
                         showAlert(t("settings.favicon.update.success"));
                     }
                 })
-                .catch((err) => {
+                .catch((err: unknown) => {
                     showAlert(
                         t("settings.favicon.update.failed$message", {
-                            message: err.message,
+                            message: err instanceof Error ? err.message : String(err),
                         }),
                     );
                 });
@@ -110,14 +110,14 @@ export function Settings() {
                 data: file,
             }, {
                 headers: headersWithAuth()
-            }).then(({ data }) => {
+            }).then(({ data }: any) => {
                 if (data && typeof data !== 'string') {
                     setMsg(t('settings.import_success$success$skipped', { success: data.success, skipped: data.skipped }))
                     setMsgList(data.skippedList)
                     setIsOpen(true);
                 }
-            }).catch((err) => {
-                showAlert(t('settings.import_failed$message', { message: err.message }))
+            }).catch((err: unknown) => {
+                showAlert(t('settings.import_failed$message', { message: err instanceof Error ? err.message : String(err) }))
             })
         }
     }
