@@ -234,7 +234,6 @@ export function IPTVPage() {
                                                 crossOrigin="anonymous"
                                                 playsInline
                                                 className="w-full h-full object-contain"
-                                                src={selectedChannel.url}
                                             />
                                         ) : (
                                             <div className="text-white text-center">
