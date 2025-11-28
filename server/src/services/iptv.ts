@@ -438,10 +438,10 @@ export function IPTVService() {
                 }
 
                 // Return appropriate headers for video streaming
+                // Note: CORS headers are handled by global CORS plugin
                 const responseHeaders: Record<string, string> = {
                     'Content-Type': isM3U8 ? 'application/vnd.apple.mpegurl' : contentType,
-                    'Accept-Ranges': 'bytes',
-                    'Access-Control-Allow-Origin': '*'
+                    'Accept-Ranges': 'bytes'
                 }
 
                 // Update content-length for rewritten M3U8
