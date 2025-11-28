@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IPTV 播放器 - 离线版</title>
+    <title>IPTV 播放器 - 本地版</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -216,15 +216,15 @@
     <div class="container">
         <div class="header">
             <h1>📺 IPTV 播放器</h1>
-            <p>完全离线版本 - 无需网络，直接播放本地/网络流媒体</p>
-            <span class="badge">v1.0 离线版</span>
+            <p>单文件本地版 - 内置离线支持，可选 CDN 加速</p>
+            <span class="badge">v2.0</span>
         </div>
 
         <div class="alert alert-warning">
             <span style="font-size: 24px;">⚡</span>
             <div>
-                <strong>离线模式：</strong>
-                此版本内置 HLS.js，首次加载后完全离线可用。
+                <strong>智能加载：</strong>
+                优先使用内置 HLS.js（离线可用），如有问题自动从 CDN 加载备份。
                 频道列表保存在浏览器本地存储中。
             </div>
         </div>
@@ -254,8 +254,8 @@
                     <video id="video" controls></video>
                 </div>
                 <div class="log-panel" id="logPanel">
-                    <div class="log-entry">📺 IPTV 播放器已就绪（离线模式）</div>
-                    <div class="log-entry">💡 添加频道并点击播放</div>
+                    <div class="log-entry">📺 IPTV 播放器已就绪</div>
+                    <div class="log-entry">💡 添加频道或导入播放列表</div>
                 </div>
             </div>
         </div>
@@ -283,11 +283,37 @@ let hls = null;
 let currentChannelIndex = -1;
 let channels = [];
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadChannels();
-    log('📺 IPTV 播放器初始化完成（离线模式）');
-    log('✓ HLS.js 已内置，版本: ' + Hls.version);
+document.addEventListener('DOMContentLoaded', async () => {
+    // Check if HLS.js is already loaded (embedded version)
+    if (typeof Hls !== 'undefined') {
+        log('📺 IPTV 播放器初始化完成（离线模式）');
+        log('✓ HLS.js 已内置，版本: ' + Hls.version);
+        loadChannels();
+    } else {
+        // Fallback to CDN if embedded version not available
+        log('📺 IPTV 播放器初始化中...');
+        log('⚠️ 内置 HLS.js 未加载，尝试从 CDN 获取...');
+        try {
+            await loadHlsFromCDN();
+            log('✓ 已从 CDN 加载 HLS.js，版本: ' + Hls.version);
+            loadChannels();
+        } catch (error) {
+            log('❌ 无法加载 HLS.js: ' + error.message);
+            alert('播放器初始化失败，请检查网络连接或重新下载播放器文件');
+        }
+    }
 });
+
+// Load HLS.js from CDN as fallback
+function loadHlsFromCDN() {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js';
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('CDN 加载失败'));
+        document.head.appendChild(script);
+    });
+}
 
 function log(message) {
     const logPanel = document.getElementById('logPanel');

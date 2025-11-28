@@ -36,32 +36,20 @@ export function IPTVPage() {
         }
     ]
 
-    const versions = [
-        {
-            name: "在线版（需要网络）",
-            size: "17 KB",
-            file: "/iptv-player.html",
-            features: [
-                "从 CDN 加载 HLS.js",
-                "需要联网使用",
-                "文件体积最小"
-            ],
-            badge: "推荐",
-            badgeColor: "bg-blue-500"
-        },
-        {
-            name: "离线版（完全离线）",
-            size: "418 KB",
-            file: "/iptv-player-offline.html",
-            features: [
-                "内置 HLS.js 库",
-                "完全离线可用",
-                "下载后永久使用"
-            ],
-            badge: "离线",
-            badgeColor: "bg-green-500"
-        }
-    ]
+    const playerInfo = {
+        name: "IPTV 本地播放器",
+        size: "418 KB",
+        file: "/iptv-player.html",
+        features: [
+            "内置 HLS.js，完全离线可用",
+            "智能回退，可选 CDN 加速",
+            "支持 M3U/M3U8 播放列表导入",
+            "自动保存频道列表",
+            "跨平台支持（Windows/Mac/Linux）"
+        ],
+        badge: "v2.0",
+        badgeColor: "bg-purple-500"
+    }
 
     return (
         <>
@@ -83,41 +71,39 @@ export function IPTVPage() {
                         </p>
                     </div>
 
-                    {/* Download Cards */}
-                    <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-20">
-                        {versions.map((version, index) => (
-                            <div key={index} className="bg-white rounded-2xl p-8 shadow-2xl hover:transform hover:scale-105 transition-all duration-300">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-2xl font-bold text-gray-800">
-                                        {version.name}
-                                    </h3>
-                                    <span className={`px-3 py-1 ${version.badgeColor} text-white rounded-full text-sm font-semibold`}>
-                                        {version.badge}
-                                    </span>
-                                </div>
-
-                                <div className="text-gray-600 mb-6">
-                                    <span className="text-3xl font-bold text-purple-600">{version.size}</span>
-                                </div>
-
-                                <ul className="space-y-3 mb-8">
-                                    {version.features.map((feature, i) => (
-                                        <li key={i} className="flex items-start gap-2">
-                                            <span className="text-green-500 mt-1">✓</span>
-                                            <span className="text-gray-700">{feature}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-
-                                <a
-                                    href={version.file}
-                                    download={version.file.split('/').pop()}
-                                    className="block w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-center font-semibold rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl"
-                                >
-                                    下载播放器
-                                </a>
+                    {/* Download Card */}
+                    <div className="max-w-2xl mx-auto mb-20">
+                        <div className="bg-white rounded-2xl p-10 shadow-2xl hover:transform hover:scale-105 transition-all duration-300">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-3xl font-bold text-gray-800">
+                                    {playerInfo.name}
+                                </h3>
+                                <span className={`px-4 py-2 ${playerInfo.badgeColor} text-white rounded-full text-sm font-semibold`}>
+                                    {playerInfo.badge}
+                                </span>
                             </div>
-                        ))}
+
+                            <div className="text-gray-600 mb-6">
+                                <span className="text-4xl font-bold text-purple-600">{playerInfo.size}</span>
+                            </div>
+
+                            <ul className="space-y-3 mb-8">
+                                {playerInfo.features.map((feature, i) => (
+                                    <li key={i} className="flex items-start gap-2">
+                                        <span className="text-green-500 mt-1 text-xl">✓</span>
+                                        <span className="text-gray-700 text-lg">{feature}</span>
+                                    </li>
+                                ))}
+                            </ul>
+
+                            <a
+                                href={playerInfo.file}
+                                download={playerInfo.file.split('/').pop()}
+                                className="block w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-center font-semibold rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl text-lg"
+                            >
+                                立即下载
+                            </a>
+                        </div>
                     </div>
 
                     {/* Features Grid */}
@@ -199,10 +185,10 @@ export function IPTVPage() {
                             </div>
 
                             <div>
-                                <h3 className="font-bold text-xl mb-2">在线版和离线版有什么区别？</h3>
+                                <h3 className="font-bold text-xl mb-2">如何导入播放列表？</h3>
                                 <p className="text-white/80">
-                                    在线版从 CDN 加载 HLS.js（需要联网），文件小。
-                                    离线版内置 HLS.js（完全离线），文件较大但可永久使用。
+                                    在"M3U8 地址或播放列表"框中直接粘贴 .m3u 或 .m3u8 播放列表的 URL，
+                                    点击"添加频道/导入列表"，播放器会自动解析并导入所有频道。
                                 </p>
                             </div>
 
