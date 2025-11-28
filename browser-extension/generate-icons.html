@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生成扩展图标</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      color: #667eea;
+    }
+    .canvas-container {
+      margin: 30px 0;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+    canvas {
+      border: 2px solid #ddd;
+      border-radius: 8px;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    button:hover {
+      background: #5568d3;
+    }
+    .instructions {
+      background: #f0f0f0;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: left;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <h1>📺 Yao.fan IPTV Helper 图标生成器</h1>
+
+  <p>点击下方按钮生成并下载图标</p>
+
+  <div class="canvas-container">
+    <div>
+      <p>16x16</p>
+      <canvas id="canvas16" width="16" height="16"></canvas>
+    </div>
+    <div>
+      <p>48x48</p>
+      <canvas id="canvas48" width="48" height="48"></canvas>
+    </div>
+    <div>
+      <p>128x128</p>
+      <canvas id="canvas128" width="128" height="128"></canvas>
+    </div>
+  </div>
+
+  <button onclick="generateIcons()">生成图标</button>
+  <button onclick="downloadAll()">下载所有图标</button>
+
+  <div class="instructions">
+    <h3>使用说明：</h3>
+    <ol>
+      <li>点击"生成图标"按钮预览图标</li>
+      <li>点击"下载所有图标"保存到本地</li>
+      <li>将下载的图标放入 <code>browser-extension/icons/</code> 文件夹</li>
+      <li>重新加载扩展即可看到新图标</li>
+    </ol>
+    <p><strong>提示：</strong>图标已自动命名为 icon16.png、icon48.png、icon128.png</p>
+  </div>
+
+  <script>
+    function generateIcons() {
+      // 16x16 图标
+      const canvas16 = document.getElementById('canvas16');
+      const ctx16 = canvas16.getContext('2d');
+      drawIcon(ctx16, 16);
+
+      // 48x48 图标
+      const canvas48 = document.getElementById('canvas48');
+      const ctx48 = canvas48.getContext('2d');
+      drawIcon(ctx48, 48);
+
+      // 128x128 图标
+      const canvas128 = document.getElementById('canvas128');
+      const ctx128 = canvas128.getContext('2d');
+      drawIcon(ctx128, 128);
+    }
+
+    function drawIcon(ctx, size) {
+      // 渐变背景
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(1, '#764ba2');
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+
+      // 绘制 TV 图标
+      ctx.fillStyle = 'white';
+
+      // TV 屏幕
+      const screenSize = size * 0.6;
+      const screenX = (size - screenSize) / 2;
+      const screenY = size * 0.15;
+
+      ctx.fillRect(screenX, screenY, screenSize, screenSize * 0.7);
+
+      // TV 底座
+      const standWidth = size * 0.3;
+      const standHeight = size * 0.1;
+      const standX = (size - standWidth) / 2;
+      const standY = screenY + screenSize * 0.7 + size * 0.05;
+
+      ctx.fillRect(standX, standY, standWidth, standHeight);
+
+      // 天线
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = size * 0.05;
+      ctx.beginPath();
+      ctx.moveTo(size * 0.35, screenY);
+      ctx.lineTo(size * 0.25, screenY - size * 0.15);
+      ctx.moveTo(size * 0.65, screenY);
+      ctx.lineTo(size * 0.75, screenY - size * 0.15);
+      ctx.stroke();
+    }
+
+    function downloadCanvas(canvas, filename) {
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function downloadAll() {
+      generateIcons();
+
+      setTimeout(() => {
+        downloadCanvas(document.getElementById('canvas16'), 'icon16.png');
+      }, 100);
+
+      setTimeout(() => {
+        downloadCanvas(document.getElementById('canvas48'), 'icon48.png');
+      }, 300);
+
+      setTimeout(() => {
+        downloadCanvas(document.getElementById('canvas128'), 'icon128.png');
+      }, 500);
+
+      alert('图标已开始下载！\n请将它们放入 browser-extension/icons/ 文件夹');
+    }
+
+    // 自动生成预览
+    window.onload = generateIcons;
+  </script>
+</body>
+</html>

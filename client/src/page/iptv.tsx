@@ -34,6 +34,11 @@ export function IPTVPage() {
     const [addChannelUrl, setAddChannelUrl] = useState('')
     const [addChannelName, setAddChannelName] = useState('')
     const [debugInfo, setDebugInfo] = useState<string>('')
+    const [showExtensionBanner, setShowExtensionBanner] = useState(() => {
+        // Check if user has dismissed the banner before
+        const dismissed = localStorage.getItem('iptv_extension_banner_dismissed')
+        return dismissed !== 'true'
+    })
     const playerRef = useRef<HTMLVideoElement>(null)
     const plyrRef = useRef<Plyr | null>(null)
     const hlsRef = useRef<Hls | null>(null)
@@ -46,6 +51,12 @@ export function IPTVPage() {
         const logMsg = `[${timestamp}] ${message}${data ? ': ' + JSON.stringify(data, null, 2) : ''}`
         console.log(logMsg)
         setDebugInfo(prev => prev + '\n' + logMsg)
+    }
+
+    // Dismiss extension banner
+    const dismissExtensionBanner = () => {
+        setShowExtensionBanner(false)
+        localStorage.setItem('iptv_extension_banner_dismissed', 'true')
     }
 
     // Load channel status from localStorage
@@ -235,9 +246,25 @@ export function IPTVPage() {
         fetchRef.current = true
     }, [])
 
-    // Get proxy URL for video to bypass CORS restrictions
-    function getProxyUrl(videoUrl: string): string {
-        return `${endpoint}/iptv/video-proxy?url=${encodeURIComponent(videoUrl)}`
+    // Smart URL selection: direct for HTTPS, proxy for HTTP
+    function getPlaybackUrl(videoUrl: string): string {
+        try {
+            const url = new URL(videoUrl)
+
+            // HTTPS sources: try direct access first (no proxy overhead)
+            if (url.protocol === 'https:') {
+                log('🔒 HTTPS source detected, using direct access (no proxy)')
+                return videoUrl
+            }
+
+            // HTTP sources: must use proxy (mixed content blocking)
+            log('🔓 HTTP source detected, using proxy to bypass mixed content blocking')
+            return `${endpoint}/iptv/video-proxy?url=${encodeURIComponent(videoUrl)}`
+        } catch {
+            // Invalid URL, use proxy as fallback
+            log('⚠️ Invalid URL format, using proxy as fallback')
+            return `${endpoint}/iptv/video-proxy?url=${encodeURIComponent(videoUrl)}`
+        }
     }
 
     // Initialize HLS.js and Plyr player when channel changes
@@ -249,8 +276,8 @@ export function IPTVPage() {
         }
 
         log('🎬 Loading channel', { name: selectedChannel.name, url: selectedChannel.url })
-        const proxyUrl = getProxyUrl(selectedChannel.url)
-        log('📡 Proxy URL', proxyUrl)
+        const playbackUrl = getPlaybackUrl(selectedChannel.url)
+        log('📡 Playback URL', playbackUrl)
 
         // Initialize Plyr player once
         if (!plyrRef.current) {
@@ -340,13 +367,13 @@ export function IPTVPage() {
 
             // Load the video
             log('🚀 Loading M3U8 stream...')
-            hls.loadSource(proxyUrl)
+            hls.loadSource(playbackUrl)
             hls.attachMedia(videoElement)
 
         } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
             // Native HLS support (Safari)
             log('✅ Native HLS support (Safari)')
-            videoElement.src = proxyUrl
+            videoElement.src = playbackUrl
             videoElement.load()
             videoElement.play().catch((e: unknown) => {
                 log('⚠️ Autoplay blocked', e instanceof Error ? e.message : String(e))
@@ -402,6 +429,49 @@ export function IPTVPage() {
                 <title>{t('iptv.title')} - {siteName}</title>
             </Helmet>
             <div className="fixed inset-0 bg-black z-40" style={{ top: '80px' }}>
+                {/* Extension Banner */}
+                {showExtensionBanner && (
+                    <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-3 relative">
+                        <div className="flex items-center justify-between max-w-7xl mx-auto">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <span className="text-2xl flex-shrink-0">🚀</span>
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-sm md:text-base">
+                                        提升播放体验 - 选择您的模式
+                                    </p>
+                                    <p className="text-xs md:text-sm opacity-90 mt-1">
+                                        <span className="inline-block mr-3">
+                                            <span className="font-bold">默认模式：</span>服务器代理（自动处理）
+                                        </span>
+                                        <span className="inline-block">
+                                            <span className="font-bold">高级模式：</span>浏览器扩展（更快，零成本）
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 ml-3">
+                                <a
+                                    href="https://github.com/al90slj23/Rin-yao.fan/tree/dev/browser-extension"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-3 py-1.5 bg-white text-purple-600 rounded-md text-sm font-medium hover:bg-gray-100 transition-colors whitespace-nowrap"
+                                >
+                                    安装扩展
+                                </a>
+                                <button
+                                    onClick={dismissExtensionBanner}
+                                    className="p-1.5 hover:bg-white/20 rounded-md transition-colors flex-shrink-0"
+                                    aria-label="关闭提示"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {hasChannels ? (
                     <div className="flex flex-col md:flex-row h-full gap-0">
                         {/* Left: Player Section (Mobile: Full width, Desktop: 2/3) */}
