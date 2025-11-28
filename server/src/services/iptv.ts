@@ -417,13 +417,24 @@ export function IPTVService() {
                 // Get the content type from the original response
                 const contentType = response.headers.get('content-type') || 'video/mp2t'
 
-                // Check if this is an M3U8/M3U playlist file
-                const isM3U8 = contentType.includes('application/vnd.apple.mpegurl') ||
-                              contentType.includes('application/x-mpegURL') ||
-                              decodedUrl.toLowerCase().endsWith('.m3u8') ||
-                              decodedUrl.toLowerCase().endsWith('.m3u')
-
                 let responseBody: any = await response.arrayBuffer()
+
+                // Check if this is an M3U8/M3U playlist file
+                // First check by content-type and file extension
+                let isM3U8 = contentType.includes('application/vnd.apple.mpegurl') ||
+                            contentType.includes('application/x-mpegURL') ||
+                            decodedUrl.toLowerCase().endsWith('.m3u8') ||
+                            decodedUrl.toLowerCase().endsWith('.m3u')
+
+                // If not detected yet, check content for M3U8 markers
+                if (!isM3U8 && contentType.includes('text/plain')) {
+                    try {
+                        const text = new TextDecoder().decode(responseBody.slice(0, 100))
+                        isM3U8 = text.trim().startsWith('#EXTM3U') || text.includes('#EXT-X-VERSION')
+                    } catch (err) {
+                        // Ignore decoding errors
+                    }
+                }
 
                 // If it's an M3U8 file, parse and rewrite URLs
                 if (isM3U8) {
@@ -431,6 +442,7 @@ export function IPTVService() {
                         const text = new TextDecoder().decode(responseBody)
                         const rewrittenM3U8 = rewriteM3U8Playlist(text, decodedUrl, request)
                         responseBody = new TextEncoder().encode(rewrittenM3U8)
+                        console.log('🔄 Rewritten M3U8 playlist for:', decodedUrl)
                     } catch (err) {
                         console.warn('Failed to parse M3U8, serving raw:', err)
                         // If parsing fails, serve as-is
