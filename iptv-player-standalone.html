@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPTV 播放器 - 本地版</title>
+
+    <!-- HLS.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .panel h2 {
+            margin-bottom: 15px;
+            color: #667eea;
+            font-size: 1.5em;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            margin-left: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .channel-list {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .channel-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f8f8f8;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .channel-item:hover {
+            background: #e8e8f8;
+            transform: translateX(5px);
+        }
+
+        .channel-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .channel-name {
+            font-weight: 600;
+        }
+
+        .channel-url {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+
+        .btn-remove {
+            background: #ff4757;
+            color: white;
+            padding: 4px 12px;
+            font-size: 12px;
+        }
+
+        .video-container {
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 */
+        }
+
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .log-panel {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            line-height: 1.5;
+        }
+
+        .features {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 20px;
+            color: white;
+            margin-top: 20px;
+        }
+
+        .features h3 {
+            margin-bottom: 15px;
+        }
+
+        .features ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .features li {
+            padding: 8px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+            color: #4ade80;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #4ade80;
+            color: white;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📺 IPTV 播放器</h1>
+            <p>本地单文件版本 - 无需服务器，直接播放 HTTP/HTTPS 流媒体</p>
+            <span class="badge">v1.0</span>
+        </div>
+
+        <div class="alert alert-info">
+            <span style="font-size: 24px;">💡</span>
+            <div>
+                <strong>使用提示：</strong>
+                此播放器完全在本地运行，支持直接播放 HTTP M3U8 流。
+                添加频道后会自动保存在浏览器中。
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Left Panel: Channel Management -->
+            <div class="panel">
+                <h2>频道管理</h2>
+
+                <div class="input-group">
+                    <label for="channelName">频道名称</label>
+                    <input type="text" id="channelName" placeholder="例如：CCTV-1" />
+                </div>
+
+                <div class="input-group">
+                    <label for="channelUrl">M3U8 地址</label>
+                    <input type="text" id="channelUrl" placeholder="http://example.com/live.m3u8" />
+                </div>
+
+                <button class="btn btn-primary" onclick="addChannel()">添加频道</button>
+                <button class="btn btn-secondary" onclick="clearChannels()">清空列表</button>
+
+                <div class="channel-list" id="channelList">
+                    <!-- Channels will be added here -->
+                </div>
+
+                <div class="alert alert-success" style="margin-top: 20px; font-size: 12px;">
+                    <span>✓</span>
+                    <span>频道列表会自动保存到浏览器</span>
+                </div>
+            </div>
+
+            <!-- Right Panel: Video Player -->
+            <div class="panel">
+                <h2>视频播放器</h2>
+                <div class="video-container">
+                    <video id="video" controls></video>
+                </div>
+
+                <div class="log-panel" id="logPanel">
+                    <div class="log-entry">📺 IPTV 播放器已就绪</div>
+                    <div class="log-entry">💡 添加频道并点击播放</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="features">
+            <h3>✨ 功能特性</h3>
+            <ul>
+                <li>支持 HTTP/HTTPS M3U8 流媒体</li>
+                <li>完全本地运行，无需服务器</li>
+                <li>自动保存频道列表</li>
+                <li>HLS.js 自动处理流媒体</li>
+                <li>支持跨平台（Windows/Mac/Linux）</li>
+                <li>零配置，下载即用</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Storage key
+        const STORAGE_KEY = 'iptv_channels';
+
+        // Current HLS instance
+        let hls = null;
+        let currentChannelIndex = -1;
+        let channels = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadChannels();
+            log('📺 IPTV 播放器初始化完成');
+            log('✓ HLS.js 版本: ' + Hls.version);
+        });
+
+        // Log function
+        function log(message, type = 'info') {
+            const logPanel = document.getElementById('logPanel');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `[${timestamp}] ${message}`;
+            logPanel.appendChild(entry);
+            logPanel.scrollTop = logPanel.scrollHeight;
+            console.log(message);
+        }
+
+        // Load channels from localStorage
+        function loadChannels() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    channels = JSON.parse(saved);
+                    renderChannels();
+                    log(`✓ 加载了 ${channels.length} 个频道`);
+                }
+            } catch (e) {
+                log('⚠️ 无法加载频道列表: ' + e.message);
+            }
+        }
+
+        // Save channels to localStorage
+        function saveChannels() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(channels));
+                log('✓ 频道列表已保存');
+            } catch (e) {
+                log('⚠️ 无法保存频道列表: ' + e.message);
+            }
+        }
+
+        // Add channel
+        function addChannel() {
+            const name = document.getElementById('channelName').value.trim();
+            const url = document.getElementById('channelUrl').value.trim();
+
+            if (!name || !url) {
+                alert('请填写频道名称和地址');
+                return;
+            }
+
+            channels.push({ name, url });
+            saveChannels();
+            renderChannels();
+
+            // Clear inputs
+            document.getElementById('channelName').value = '';
+            document.getElementById('channelUrl').value = '';
+
+            log(`✓ 添加频道: ${name}`);
+        }
+
+        // Remove channel
+        function removeChannel(index) {
+            const channel = channels[index];
+            if (confirm(`确定删除频道 "${channel.name}" 吗？`)) {
+                channels.splice(index, 1);
+                saveChannels();
+                renderChannels();
+                log(`✓ 删除频道: ${channel.name}`);
+            }
+        }
+
+        // Clear all channels
+        function clearChannels() {
+            if (confirm('确定清空所有频道吗？')) {
+                channels = [];
+                saveChannels();
+                renderChannels();
+                log('✓ 已清空频道列表');
+            }
+        }
+
+        // Render channels
+        function renderChannels() {
+            const list = document.getElementById('channelList');
+            list.innerHTML = '';
+
+            if (channels.length === 0) {
+                list.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">暂无频道，请添加</div>';
+                return;
+            }
+
+            channels.forEach((channel, index) => {
+                const item = document.createElement('div');
+                item.className = 'channel-item';
+                if (index === currentChannelIndex) {
+                    item.classList.add('active');
+                }
+
+                item.innerHTML = `
+                    <div onclick="playChannel(${index})">
+                        <div class="channel-name">${channel.name}</div>
+                        <div class="channel-url">${channel.url}</div>
+                    </div>
+                    <button class="btn btn-remove btn-small" onclick="event.stopPropagation(); removeChannel(${index})">删除</button>
+                `;
+
+                list.appendChild(item);
+            });
+        }
+
+        // Play channel
+        function playChannel(index) {
+            const channel = channels[index];
+            currentChannelIndex = index;
+            renderChannels();
+
+            log(`🎬 正在加载: ${channel.name}`);
+            log(`📡 地址: ${channel.url}`);
+
+            const video = document.getElementById('video');
+
+            // Destroy previous HLS instance
+            if (hls) {
+                hls.destroy();
+                log('🔄 销毁旧的 HLS 实例');
+            }
+
+            // Check if HLS is supported
+            if (Hls.isSupported()) {
+                hls = new Hls({
+                    debug: false,
+                    enableWorker: true,
+                });
+
+                hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+                    log('✓ HLS: 媒体已附加');
+                });
+
+                hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+                    log(`✓ HLS: 清单已解析 (${data.levels.length} 个级别)`);
+                    video.play().catch(e => {
+                        log('⚠️ 自动播放被阻止，请点击播放按钮');
+                    });
+                });
+
+                hls.on(Hls.Events.LEVEL_LOADED, (event, data) => {
+                    log(`✓ HLS: 级别已加载 (时长: ${data.details.totalduration.toFixed(2)}s)`);
+                });
+
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        log(`❌ 致命错误: ${data.details}`);
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                log('🔄 网络错误，尝试恢复...');
+                                hls.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                log('🔄 媒体错误，尝试恢复...');
+                                hls.recoverMediaError();
+                                break;
+                            default:
+                                log('💀 无法恢复，停止播放');
+                                hls.destroy();
+                                break;
+                        }
+                    } else {
+                        log(`⚠️ 非致命错误: ${data.details}`);
+                    }
+                });
+
+                hls.loadSource(channel.url);
+                hls.attachMedia(video);
+                log('🚀 开始加载流媒体...');
+
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Native HLS support (Safari)
+                log('✓ 使用原生 HLS 支持 (Safari)');
+                video.src = channel.url;
+                video.addEventListener('loadedmetadata', () => {
+                    video.play().catch(e => {
+                        log('⚠️ 自动播放被阻止');
+                    });
+                });
+            } else {
+                log('❌ 浏览器不支持 HLS');
+                alert('您的浏览器不支持 HLS 播放');
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.target.id === 'channelName' || e.target.id === 'channelUrl')) {
+                addChannel();
+            }
+        });
+    </script>
+</body>
+</html>
