@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import Plyr from 'plyr'
 import 'plyr/dist/plyr.css'
+import Hls from 'hls.js'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from "react-i18next"
 import { Waiting } from "../components/loading"
@@ -32,10 +33,20 @@ export function IPTVPage() {
     const [showAddChannel, setShowAddChannel] = useState(false)
     const [addChannelUrl, setAddChannelUrl] = useState('')
     const [addChannelName, setAddChannelName] = useState('')
+    const [debugInfo, setDebugInfo] = useState<string>('')
     const playerRef = useRef<HTMLVideoElement>(null)
     const plyrRef = useRef<Plyr | null>(null)
+    const hlsRef = useRef<Hls | null>(null)
     const fetchRef = useRef(false)
     const { t } = useTranslation()
+
+    // Debug logging helper
+    const log = (message: string, data?: any) => {
+        const timestamp = new Date().toLocaleTimeString()
+        const logMsg = `[${timestamp}] ${message}${data ? ': ' + JSON.stringify(data, null, 2) : ''}`
+        console.log(logMsg)
+        setDebugInfo(prev => prev + '\n' + logMsg)
+    }
 
     // Load channel status from localStorage
     useEffect(() => {
@@ -229,15 +240,21 @@ export function IPTVPage() {
         return `${endpoint}/iptv/video-proxy?url=${encodeURIComponent(videoUrl)}`
     }
 
-    // Initialize Plyr player when channel changes or player ref is ready
+    // Initialize HLS.js and Plyr player when channel changes
     useEffect(() => {
         const videoElement = playerRef.current
-        if (!videoElement || !selectedChannel?.url) return
+        if (!videoElement || !selectedChannel?.url) {
+            log('Player init skipped: no video element or channel')
+            return
+        }
 
+        log('🎬 Loading channel', { name: selectedChannel.name, url: selectedChannel.url })
         const proxyUrl = getProxyUrl(selectedChannel.url)
+        log('📡 Proxy URL', proxyUrl)
 
-        // Initialize player once (don't recreate it)
+        // Initialize Plyr player once
         if (!plyrRef.current) {
+            log('🎮 Initializing Plyr player')
             try {
                 plyrRef.current = new Plyr(videoElement, {
                     controls: [
@@ -249,46 +266,124 @@ export function IPTVPage() {
                         'volume',
                         'fullscreen'
                     ],
-                    quality: { default: 360, options: [360, 720, 1080] },
-                    autoplay: true,
+                    autoplay: false, // Changed to false to avoid browser blocking
                     loop: { active: false },
                 })
+                log('✅ Plyr initialized successfully')
             } catch (e: unknown) {
-                console.error('Plyr init failed:', e)
+                log('❌ Plyr init failed', e)
                 plyrRef.current = null
                 return
             }
         }
 
-        // Just update the source, don't destroy/recreate player
-        try {
+        // Check if HLS is supported
+        if (Hls.isSupported()) {
+            log('✅ HLS.js is supported')
+
+            // Destroy existing HLS instance if any
+            if (hlsRef.current) {
+                log('🔄 Destroying existing HLS instance')
+                hlsRef.current.destroy()
+            }
+
+            // Create new HLS instance
+            const hls = new Hls({
+                debug: true, // Enable debug logs
+                enableWorker: true,
+                lowLatencyMode: false,
+                backBufferLength: 90
+            })
+            hlsRef.current = hls
+
+            // HLS event listeners for debugging
+            hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+                log('📺 HLS: Media attached')
+            })
+
+            hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+                log('📋 HLS: Manifest parsed', { levels: data.levels.length })
+                // Try to play after manifest is loaded
+                videoElement.play().catch((e: unknown) => {
+                    log('⚠️ Autoplay blocked (user interaction needed)', e instanceof Error ? e.message : String(e))
+                })
+            })
+
+            hls.on(Hls.Events.LEVEL_LOADED, (event, data) => {
+                log('📊 HLS: Level loaded', { level: data.level, duration: data.details.totalduration })
+            })
+
+            hls.on(Hls.Events.FRAG_LOADED, (event, data) => {
+                log('🎞️ HLS: Fragment loaded', { sn: data.frag.sn, duration: data.frag.duration })
+            })
+
+            hls.on(Hls.Events.ERROR, (event, data) => {
+                log('❌ HLS Error', { type: data.type, details: data.details, fatal: data.fatal })
+
+                if (data.fatal) {
+                    switch (data.type) {
+                        case Hls.ErrorTypes.NETWORK_ERROR:
+                            log('🔄 Network error, attempting recovery...')
+                            hls.startLoad()
+                            break
+                        case Hls.ErrorTypes.MEDIA_ERROR:
+                            log('🔄 Media error, attempting recovery...')
+                            hls.recoverMediaError()
+                            break
+                        default:
+                            log('💀 Fatal error, cannot recover')
+                            hls.destroy()
+                            break
+                    }
+                }
+            })
+
+            // Load the video
+            log('🚀 Loading M3U8 stream...')
+            hls.loadSource(proxyUrl)
+            hls.attachMedia(videoElement)
+
+        } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+            // Native HLS support (Safari)
+            log('✅ Native HLS support (Safari)')
             videoElement.src = proxyUrl
             videoElement.load()
-
-            // Auto-play after source change
-            if (videoElement.play) {
-                videoElement.play().catch((e: unknown) => {
-                    console.debug('Autoplay suppressed:', e instanceof Error ? e.message : e)
-                })
-            }
-        } catch (e: unknown) {
-            console.error('Failed to load video:', e)
+            videoElement.play().catch((e: unknown) => {
+                log('⚠️ Autoplay blocked', e instanceof Error ? e.message : String(e))
+            })
+        } else {
+            log('❌ HLS not supported on this browser')
         }
 
         return () => {
-            // Only clean up on unmount, not on every source change
+            log('🧹 Cleaning up channel change')
         }
     }, [selectedChannel])
 
-    // Clean up player on component unmount
+    // Clean up player and HLS on component unmount
     useEffect(() => {
         return () => {
+            log('🧹 Component unmounting, cleaning up...')
+
+            // Destroy HLS instance
+            if (hlsRef.current) {
+                try {
+                    hlsRef.current.destroy()
+                    hlsRef.current = null
+                    log('✅ HLS instance destroyed')
+                } catch (e: unknown) {
+                    log('⚠️ Error destroying HLS', e)
+                }
+            }
+
+            // Destroy Plyr instance
             if (plyrRef.current) {
                 try {
                     plyrRef.current.destroy()
                     plyrRef.current = null
+                    log('✅ Plyr instance destroyed')
                 } catch (e: unknown) {
-                    // Suppress cleanup errors
+                    log('⚠️ Error destroying Plyr', e)
                 }
             }
         }
@@ -327,8 +422,8 @@ export function IPTVPage() {
 
                             {/* Video Player Container */}
                             {selectedChannel && (
-                                <div className="flex-1 overflow-hidden">
-                                    <div className="w-full h-full bg-black flex items-center justify-center">
+                                <div className="flex-1 overflow-hidden flex flex-col">
+                                    <div className="flex-1 bg-black flex items-center justify-center">
                                         {selectedChannel.url ? (
                                             <video
                                                 ref={playerRef}
@@ -343,6 +438,24 @@ export function IPTVPage() {
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Debug Info Panel - Collapsible */}
+                                    <details className="bg-gray-900 border-t border-gray-700">
+                                        <summary className="px-3 py-2 cursor-pointer text-xs text-gray-400 hover:bg-gray-800">
+                                            🐛 调试信息 (点击展开/收起)
+                                        </summary>
+                                        <div className="p-3 max-h-40 overflow-y-auto bg-black">
+                                            <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap">
+                                                {debugInfo || '等待日志...'}
+                                            </pre>
+                                            <button
+                                                onClick={() => setDebugInfo('')}
+                                                className="mt-2 px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded"
+                                            >
+                                                清除日志
+                                            </button>
+                                        </div>
+                                    </details>
                                 </div>
                             )}
                         </div>
