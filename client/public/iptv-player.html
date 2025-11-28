@@ -384,53 +384,181 @@ function playChannel(index) {
     const channel = channels[index];
     currentChannelIndex = index;
     renderChannels();
-    log(`播放: ${channel.name}`);
-    log(`URL: ${channel.url}`);
+
+    log(`========== 开始播放 ==========`);
+    log(`频道名称: ${channel.name}`);
+    log(`播放地址: ${channel.url}`);
+    log(`浏览器: ${navigator.userAgent}`);
 
     const video = document.getElementById('video');
     const noVideo = document.getElementById('noVideo');
     noVideo.style.display = 'none';
     video.style.display = 'block';
 
-    if (hls) hls.destroy();
+    if (hls) {
+        log('销毁之前的 HLS 实例');
+        hls.destroy();
+    }
 
     if (Hls.isSupported()) {
-        hls = new Hls({ debug: false, enableWorker: true });
-        hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-            log(`HLS 清单已解析 (${data.levels.length} 级别)`);
-            video.play().catch(e => log('自动播放被阻止', 'warn'));
+        log(`HLS.js 支持检查: ✓ 支持`);
+        log(`创建 HLS 实例...`);
+
+        hls = new Hls({
+            debug: false,
+            enableWorker: true,
+            xhrSetup: function(xhr, url) {
+                log(`发起 XHR 请求: ${url}`);
+            }
         });
+
+        // 监听所有主要事件
+        hls.on(Hls.Events.MANIFEST_LOADING, (event, data) => {
+            log(`[事件] 开始加载清单: ${data.url}`);
+        });
+
+        hls.on(Hls.Events.MANIFEST_LOADED, (event, data) => {
+            log(`[事件] 清单加载成功`);
+            log(`  - 级别数: ${data.levels.length}`);
+            data.levels.forEach((level, i) => {
+                log(`  - 级别 ${i}: ${level.width}x${level.height} @ ${(level.bitrate/1000).toFixed(0)}kbps`);
+            });
+        });
+
+        hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+            log(`[事件] 清单解析完成 (${data.levels.length} 个级别)`);
+            log(`尝试播放视频...`);
+            video.play()
+                .then(() => log('✓ 视频开始播放'))
+                .catch(e => log(`自动播放被阻止: ${e.message}`, 'warn'));
+        });
+
+        hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+            log(`[事件] 切换到级别: ${data.level}`);
+        });
+
+        hls.on(Hls.Events.FRAG_LOADING, (event, data) => {
+            log(`[事件] 加载片段 #${data.frag.sn}`);
+        });
+
+        hls.on(Hls.Events.FRAG_LOADED, (event, data) => {
+            log(`[事件] 片段 #${data.frag.sn} 加载成功 (${(data.frag.duration).toFixed(2)}s)`);
+        });
+
         hls.on(Hls.Events.ERROR, (event, data) => {
+            log(`========== 错误详情 ==========`, 'error');
+            log(`错误类型: ${data.type}`, 'error');
+            log(`错误详情: ${data.details}`, 'error');
+            log(`是否致命: ${data.fatal ? '是' : '否'}`, 'error');
+
+            if (data.response) {
+                log(`HTTP 状态码: ${data.response.code}`, 'error');
+                log(`HTTP 状态文本: ${data.response.text}`, 'error');
+            }
+
+            if (data.url) {
+                log(`出错 URL: ${data.url}`, 'error');
+            }
+
+            if (data.reason) {
+                log(`错误原因: ${data.reason}`, 'error');
+            }
+
+            if (data.error) {
+                log(`错误消息: ${data.error.message || data.error}`, 'error');
+            }
+
+            if (data.networkDetails) {
+                log(`网络详情: ${JSON.stringify(data.networkDetails)}`, 'error');
+            }
+
+            log(`完整错误: ${JSON.stringify(data, null, 2)}`, 'error');
+            log(`================================`, 'error');
+
+            // 检测 CORS 错误（HTTP 状态码 0）
+            if (data.fatal && data.type === Hls.ErrorTypes.NETWORK_ERROR &&
+                data.details === 'manifestLoadError' &&
+                data.response && data.response.code === 0) {
+
+                log(``, 'error');
+                log(`⚠️ 检测到 CORS 阻止！`, 'error');
+                log(``, 'error');
+                log(`问题原因：`, 'error');
+                log(`从 file:// 协议加载的 HTML 文件，浏览器的安全策略阻止了`, 'error');
+                log(`通过 XHR/fetch 访问外部 HTTP 地址。`, 'error');
+                log(``, 'error');
+                log(`解决方案：`, 'error');
+                log(``, 'error');
+                log(`方案 1 - 使用本地 HTTP 服务器（推荐）：`, 'warn');
+                log(`  在 HTML 文件所在目录运行:`, 'warn');
+                log(`  python3 -m http.server 8000`, 'warn');
+                log(`  然后访问: http://localhost:8000/iptv-player.html`, 'warn');
+                log(``, 'warn');
+                log(`方案 2 - 禁用浏览器 CORS 检查（仅用于测试）：`, 'warn');
+                log(`  关闭所有 Chrome 窗口，然后用命令启动:`, 'warn');
+                log(`  /Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome \\`, 'warn');
+                log(`    --disable-web-security \\`, 'warn');
+                log(`    --user-data-dir=/tmp/chrome-no-cors`, 'warn');
+                log(`  然后重新打开 HTML 文件`, 'warn');
+                log(``, 'warn');
+                log(`方案 3 - 使用代理服务器：`, 'warn');
+                log(`  将 URL 改为通过代理访问:`, 'warn');
+                log(`  https://api.yao.fan/iptv/video-proxy?url=${encodeURIComponent(data.url)}`, 'warn');
+                log(``, 'error');
+
+                hls.destroy();
+                return;
+            }
+
             if (data.fatal) {
-                log(`致命错误: ${data.details}`, 'error');
                 switch (data.type) {
                     case Hls.ErrorTypes.NETWORK_ERROR:
-                        log('网络错误，尝试恢复...', 'warn');
+                        log('尝试恢复网络错误...', 'warn');
                         hls.startLoad();
                         break;
                     case Hls.ErrorTypes.MEDIA_ERROR:
-                        log('媒体错误，尝试恢复...', 'warn');
+                        log('尝试恢复媒体错误...', 'warn');
                         hls.recoverMediaError();
                         break;
                     default:
-                        log('无法恢复，停止播放', 'error');
+                        log('无法恢复的错误类型，停止播放', 'error');
                         hls.destroy();
                         break;
                 }
-            } else {
-                log(`非致命错误: ${data.details}`, 'warn');
             }
         });
+
+        log(`加载源: ${channel.url}`);
         hls.loadSource(channel.url);
+
+        log(`附加到 video 元素`);
         hls.attachMedia(video);
+
+        log(`等待清单加载...`);
+
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        log('使用原生 HLS (Safari)');
+        log('使用原生 HLS 支持 (Safari)');
         video.src = channel.url;
-        video.play().catch(e => log('自动播放被阻止', 'warn'));
+
+        video.addEventListener('loadstart', () => log('[Video] loadstart'));
+        video.addEventListener('loadedmetadata', () => log('[Video] loadedmetadata'));
+        video.addEventListener('loadeddata', () => log('[Video] loadeddata'));
+        video.addEventListener('canplay', () => log('[Video] canplay'));
+        video.addEventListener('playing', () => log('[Video] playing'));
+        video.addEventListener('error', (e) => {
+            log(`[Video] 错误代码: ${video.error?.code}`, 'error');
+            log(`[Video] 错误消息: ${video.error?.message}`, 'error');
+        });
+
+        video.play()
+            .then(() => log('✓ 视频开始播放'))
+            .catch(e => log(`播放失败: ${e.message}`, 'error'));
     } else {
-        log('浏览器不支持 HLS', 'error');
+        log('浏览器不支持 HLS 播放', 'error');
         alert('浏览器不支持 HLS 播放');
     }
+
+    log(`========== 初始化完成 ==========`);
 }
 
 document.addEventListener('keydown', (e) => {
