@@ -304,11 +304,11 @@
                 </div>
 
                 <div class="input-group">
-                    <label for="channelUrl">M3U8 地址</label>
-                    <input type="text" id="channelUrl" placeholder="http://example.com/live.m3u8" />
+                    <label for="channelUrl">M3U8 地址或播放列表</label>
+                    <input type="text" id="channelUrl" placeholder="单个频道或 .m3u/.m3u8 播放列表" />
                 </div>
 
-                <button class="btn btn-primary" onclick="addChannel()">添加频道</button>
+                <button class="btn btn-primary" onclick="addChannel()">添加频道/导入列表</button>
                 <button class="btn btn-secondary" onclick="clearChannels()">清空列表</button>
 
                 <div class="channel-list" id="channelList">
@@ -400,25 +400,116 @@
             }
         }
 
-        // Add channel
-        function addChannel() {
+        // Parse M3U playlist
+        async function parseM3UPlaylist(content) {
+            const lines = content.split('\n').map(line => line.trim()).filter(line => line);
+            const parsedChannels = [];
+            let currentName = '';
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                // Parse #EXTINF line for channel name
+                if (line.startsWith('#EXTINF:')) {
+                    // Format: #EXTINF:-1,Channel Name
+                    // or: #EXTINF:-1 tvg-name="..." tvg-logo="...",Channel Name
+                    const match = line.match(/,(.+)$/);
+                    if (match) {
+                        currentName = match[1].trim();
+                    }
+                }
+                // Non-comment line is the URL
+                else if (!line.startsWith('#') && line.startsWith('http')) {
+                    if (currentName) {
+                        parsedChannels.push({ name: currentName, url: line });
+                        currentName = '';
+                    } else {
+                        // No name found, use URL as name
+                        const urlName = line.split('/').pop().split('?')[0] || 'Unknown';
+                        parsedChannels.push({ name: urlName, url: line });
+                    }
+                }
+            }
+
+            return parsedChannels;
+        }
+
+        // Add channel (with playlist detection)
+        async function addChannel() {
             const name = document.getElementById('channelName').value.trim();
             const url = document.getElementById('channelUrl').value.trim();
 
-            if (!name || !url) {
-                alert('请填写频道名称和地址');
+            if (!url) {
+                alert('请填写频道地址');
                 return;
             }
 
-            channels.push({ name, url });
-            saveChannels();
-            renderChannels();
+            // Detect if URL is a playlist file
+            const isPlaylist = url.toLowerCase().endsWith('.m3u') ||
+                              url.toLowerCase().includes('.m3u?') ||
+                              url.toLowerCase().includes('.m3u8?') && !name;
 
-            // Clear inputs
-            document.getElementById('channelName').value = '';
-            document.getElementById('channelUrl').value = '';
+            if (isPlaylist) {
+                log(`📥 检测到播放列表，正在解析...`);
+                try {
+                    const response = await fetch(url);
+                    const content = await response.text();
 
-            log(`✓ 添加频道: ${name}`);
+                    // Check if content is actually a playlist
+                    if (content.includes('#EXTM3U') || content.includes('#EXTINF:')) {
+                        const parsedChannels = await parseM3UPlaylist(content);
+
+                        if (parsedChannels.length === 0) {
+                            alert('播放列表中没有找到频道');
+                            return;
+                        }
+
+                        log(`✓ 解析出 ${parsedChannels.length} 个频道`);
+
+                        // Add all parsed channels
+                        channels.push(...parsedChannels);
+                        saveChannels();
+                        renderChannels();
+
+                        // Clear inputs
+                        document.getElementById('channelName').value = '';
+                        document.getElementById('channelUrl').value = '';
+
+                        log(`✓ 已添加 ${parsedChannels.length} 个频道到列表`);
+                    } else {
+                        // Not a playlist, treat as single stream
+                        if (!name) {
+                            alert('请填写频道名称');
+                            return;
+                        }
+                        channels.push({ name, url });
+                        saveChannels();
+                        renderChannels();
+                        document.getElementById('channelName').value = '';
+                        document.getElementById('channelUrl').value = '';
+                        log(`✓ 添加频道: ${name}`);
+                    }
+                } catch (error) {
+                    log(`❌ 获取播放列表失败: ${error.message}`);
+                    alert('无法获取播放列表，请检查 URL 是否正确');
+                }
+            } else {
+                // Single channel
+                if (!name) {
+                    alert('请填写频道名称');
+                    return;
+                }
+
+                channels.push({ name, url });
+                saveChannels();
+                renderChannels();
+
+                // Clear inputs
+                document.getElementById('channelName').value = '';
+                document.getElementById('channelUrl').value = '';
+
+                log(`✓ 添加频道: ${name}`);
+            }
         }
 
         // Remove channel
