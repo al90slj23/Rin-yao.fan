@@ -80,16 +80,31 @@ function NavItem({ menu, title, selected, href, when = true, onClick }: {
     when?: boolean,
     onClick?: () => void
 }) {
+    const isExternal = href.startsWith('http://') || href.startsWith('https://')
+    const className = `${menu ? "" : "hidden"} md:block cursor-pointer hover:text-theme duration-300 px-2 py-4 md:p-4 text-sm ${selected ? "text-theme" : "dark:text-white"}`
+
     return (
         <>
-            {when &&
-                <Link href={href}
-                    className={`${menu ? "" : "hidden"} md:block cursor-pointer hover:text-theme duration-300 px-2 py-4 md:p-4 text-sm ${selected ? "text-theme" : "dark:text-white"}`}
-                    state={{ animate: true }}
-                    onClick={onClick}
-                >
-                    {title}
-                </Link>}
+            {when && (
+                isExternal ? (
+                    <a href={href}
+                        className={className}
+                        onClick={onClick}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        {title}
+                    </a>
+                ) : (
+                    <Link href={href}
+                        className={className}
+                        state={{ animate: true }}
+                        onClick={onClick}
+                    >
+                        {title}
+                    </Link>
+                )
+            )}
         </>
     )
 }
@@ -148,7 +163,7 @@ function NavBar({ menu, onClick }: { menu: boolean, onClick?: () => void }) {
             <NavItem menu={menu} onClick={onClick} title={t('timeline')} selected={location === "/timeline"} href="/timeline" />
             <NavItem menu={menu} onClick={onClick} title={t('moments.title')} selected={location === "/moments"} href="/moments" />
             <NavItem menu={menu} onClick={onClick} title={t('hashtags')} selected={location === "/hashtags"} href="/hashtags" />
-            <NavItem menu={menu} onClick={onClick} title={t('iptv.title')} selected={location === "/iptv" || location.startsWith("/iptv/")} href="/iptv" />
+            <NavItem menu={menu} onClick={onClick} title={t('iptv.title')} selected={location === "/iptv" || location.startsWith("/iptv/")} href="https://iptv.it.sc.cn" />
             <NavItem menu={menu} onClick={onClick} when={profile?.permission == true} title={t('writing')}
                 selected={location.startsWith("/writing")} href="/writing" />
             <NavItem menu={menu} onClick={onClick} title={t('friends.title')} selected={location === "/friends"} href="/friends" />
