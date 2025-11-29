@@ -79,6 +79,22 @@ export function IPTVPage() {
         console.log(`[${timestamp}] ${message}`)
     }
 
+    const clearLogs = () => {
+        setDebugLogs([])
+        console.log('Debug logs cleared')
+    }
+
+    const copyLogs = async () => {
+        const text = debugLogs.map((log: DebugLog) => `[${log.timestamp}] ${log.message}`).join('\n')
+        try {
+            await navigator.clipboard.writeText(text)
+            alert('调试日志已复制到剪贴板')
+        } catch (err) {
+            console.error('Failed to copy logs:', err)
+            alert('复制失败')
+        }
+    }
+
     const saveChannels = (newChannels: Channel[]) => {
         localStorage.setItem('iptv_channels', JSON.stringify(newChannels))
         log('频道列表已保存')
@@ -446,26 +462,45 @@ export function IPTVPage() {
 
                     {/* Debug Panel */}
                     {showDebug && (
-                        <div
-                            ref={debugPanelRef}
-                            className="h-64 bg-gray-900 border-t border-gray-700 overflow-y-auto p-4 font-mono text-xs"
-                        >
-                            {debugLogs.length === 0 ? (
-                                <div className="text-gray-500">暂无日志</div>
-                            ) : (
-                                debugLogs.map((log: DebugLog, index: number) => (
-                                    <div
-                                        key={index}
-                                        className={`mb-1 ${
-                                            log.type === 'error' ? 'text-red-400' :
-                                            log.type === 'warn' ? 'text-yellow-400' :
-                                            'text-green-400'
-                                        }`}
-                                    >
-                                        [{log.timestamp}] {log.message}
-                                    </div>
-                                ))
-                            )}
+                        <div className="h-64 bg-gray-900 border-t border-gray-700 flex flex-col">
+                            {/* Button Bar */}
+                            <div className="flex gap-2 p-2 border-b border-gray-700">
+                                <button
+                                    onClick={clearLogs}
+                                    className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded transition"
+                                >
+                                    清空日志
+                                </button>
+                                <button
+                                    onClick={copyLogs}
+                                    className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded transition"
+                                >
+                                    复制日志
+                                </button>
+                            </div>
+
+                            {/* Log Content */}
+                            <div
+                                ref={debugPanelRef}
+                                className="flex-1 overflow-y-auto p-4 font-mono text-xs"
+                            >
+                                {debugLogs.length === 0 ? (
+                                    <div className="text-gray-500">暂无日志</div>
+                                ) : (
+                                    debugLogs.map((log: DebugLog, index: number) => (
+                                        <div
+                                            key={index}
+                                            className={`mb-1 ${
+                                                log.type === 'error' ? 'text-red-400' :
+                                                log.type === 'warn' ? 'text-yellow-400' :
+                                                'text-green-400'
+                                            }`}
+                                        >
+                                            [{log.timestamp}] {log.message}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>

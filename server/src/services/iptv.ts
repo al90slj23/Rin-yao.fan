@@ -392,11 +392,16 @@ export function IPTVService() {
                 }
 
                 // Build request headers that mimic a real browser
+                const sourceUrl = new URL(decodedUrl)
+                const sourceOrigin = `${sourceUrl.protocol}//${sourceUrl.host}`
+
                 const fetchHeaders: Record<string, string> = {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     'Accept': '*/*',
                     'Accept-Encoding': 'gzip, deflate',
-                    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
+                    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                    'Referer': sourceOrigin,
+                    'Origin': sourceOrigin
                 }
 
                 // Pass through Range header if present (for streaming support)
@@ -484,8 +489,9 @@ export function IPTVService() {
             const urlObj = new URL(baseUrl)
             const baseDir = baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1)
 
-            // Get the proxy base URL from the request
-            const proxyHost = request.headers.get('origin') || new URL(request.url).origin
+            // Get the proxy base URL from the request itself (not from Origin header)
+            // This ensures we always use api.yao.fan, not the browser's origin (yao.fan)
+            const proxyHost = new URL(request.url).origin
             const proxyBase = `${proxyHost}/iptv/video-proxy`
 
             for (const line of lines) {
